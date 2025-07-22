@@ -69,6 +69,10 @@ class MarkdownFormatter:
             # 中文括号内英文/英文括号内中文（保护，不处理）
             "chinese_paren_english": re.compile(r"（[a-zA-Z]+）"),
             "english_paren_chinese": re.compile(r"[a-zA-Z]+（[\u4e00-\u9fa5]+）"),
+            # 英文标点后加空格（逗号、句号、问号、感叹号、分号、冒号）
+            "en_punct_after": re.compile(r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])"),
+            # 英文右括号后加空格
+            "en_rparen_after": re.compile(r"(\))([A-Za-z\u4e00-\u9fa5])"),
         }
 
     def format_content(self, content: str) -> str:
@@ -159,6 +163,10 @@ class MarkdownFormatter:
         formatted = self._patterns["number_english"].sub(r"\1 \2", formatted)
         formatted = self._patterns["english_number"].sub(r"\1 \2", formatted)
         formatted = self._patterns["math_symbols"].sub(r"\1 \2 \3", formatted)
+        # 英文标点后加空格
+        formatted = self._patterns["en_punct_after"].sub(r"\1 \2", formatted)
+        # 英文右括号后加空格
+        formatted = self._patterns["en_rparen_after"].sub(r"\1 \2", formatted)
         if self.bold_quotes:
             formatted = self._patterns["chinese_quotes"].sub(r"**\1**", formatted)
         formatted = self._patterns["chinese_hyphen"].sub(r"\1 - \2", formatted)
