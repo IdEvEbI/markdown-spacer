@@ -1,2 +1,44 @@
 # markdown-spacer
-Fix spacing issues in Markdown documents by automatically adding or removing spaces between Chinese and English text for consistent formatting. 
+
+一个专门处理 Markdown 文档中英文数字间空格问题的 Python 命令行工具，提升文档的可读性和规范性。
+
+## 🎯 项目目标
+
+- **智能空格处理**：自动在中英文、数字之间添加或删除空格
+- **批量处理**：支持单个文件或目录的批量格式化
+- **自动化工具**：减少手动格式化的重复工作
+
+## 🛠️ 技术栈
+
+- **Python 3.12+**：核心开发语言
+- **正则表达式**：文本处理核心算法
+- **命令行工具**：简单易用的交互方式
+
+## 📁 项目结构
+
+```ini
+markdown-spacer/
+├── docs/                       # 项目文档
+│   ├── requirements/           # 需求文档
+│   ├── design/                 # 设计文档
+│   ├── standards/              # 开发规范
+│   └── project/                # 项目管理
+├── src/                        # 源代码目录（开发中）
+├── tests/                      # 测试用例（开发中）
+└── README.md                   # 项目说明
+```
+
+## 📋 开发状态
+
+- **阶段**：需求分析与设计阶段
+- **状态**：文档规范制定完成，准备进入技术设计
+- **预计完成**：开发中
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 📞 联系方式
+
+- GitHub：[@IdEvEbI](https://github.com/IdEvEbI)
+- 邮箱：<idevebi@163.com>
