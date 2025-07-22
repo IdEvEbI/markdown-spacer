@@ -62,8 +62,10 @@ class MarkdownFormatter:
             "date": re.compile(
                 r"(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}[日号]?|\d{4}年\d{1,2}月\d{1,2}[日号]?)"
             ),
-            # 版本号（保护，不处理）
-            "version": re.compile(r"v\d+\.\d+\.\d+"),
+            # 版本号（保护，不处理），支持英文和中文格式
+            "version": re.compile(
+                r"v(\d+\.\d+\.\d+|[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+(-[A-Za-z0-9]+)?)"
+            ),
             # 英文连字符（保护，不处理）
             "english_hyphen": re.compile(r"([a-zA-Z]+)-([a-zA-Z]+)"),
             # 中文括号内英文/英文括号内中文（保护，不处理）
@@ -73,6 +75,8 @@ class MarkdownFormatter:
             "en_punct_after": re.compile(r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])"),
             # 英文右括号后加空格
             "en_rparen_after": re.compile(r"(\))([A-Za-z\u4e00-\u9fa5])"),
+            # 中文与 v 之间加空格（用于版本号前缀，v 后可跟数字或中文）
+            "chinese_v": re.compile(r"([\u4e00-\u9fa5])([vV])(?=[\d\u4e00-\u9fa5]+\.)"),
         }
 
     def format_content(self, content: str) -> str:
@@ -134,6 +138,9 @@ class MarkdownFormatter:
         placeholders = {}
         placeholder_idx = 0
 
+        # 0. 先处理中文+v之间加空格（用于版本号前缀）
+        formatted = self._patterns["chinese_v"].sub(r"\1 \2", formatted)
+
         # 1. 保护性内容占位（日期、版本号、英文连字符、括号内中英文等）
         protect_patterns = [
             self._patterns["date"],
@@ -184,6 +191,16 @@ class MarkdownFormatter:
             if self.debug:
                 logging.debug(f"还原保护内容: {key} -> {value}")
             formatted = formatted.replace(key, value)
+
+        # 4. 版本号后紧跟中英文时加空格
+        formatted = re.sub(
+            r"(v\d+\.\d+\.\d+)([A-Za-z\u4e00-\u9fa5])", r"\1 \2", formatted
+        )
+        formatted = re.sub(
+            r"(v[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+)(?![\u4e00-\u9fa5])([A-Za-z0-9])",
+            r"\1 \2",
+            formatted,
+        )
 
         return formatted
 

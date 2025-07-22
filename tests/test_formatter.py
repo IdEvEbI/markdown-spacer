@@ -86,3 +86,45 @@ def test_title_spacing() -> None:
     fmt = MarkdownFormatter()
     assert fmt.format_content("# 中文English") == "# 中文 English"
     assert fmt.format_content("## English中文") == "## English 中文"
+
+
+def test_punctuation_spacing() -> None:
+    fmt = MarkdownFormatter()
+    # 中文标点前后不加空格
+    assert fmt.format_content("中文，English") == "中文，English"
+    assert fmt.format_content("English。中文") == "English。中文"
+    # 英文标点前后不加空格
+    assert fmt.format_content("中文,English") == "中文, English"
+    assert fmt.format_content("English.中文") == "English. 中文"
+    # 标点与数字
+    assert fmt.format_content("金额：123,456元") == "金额：123,456 元"
+    # 标点与中英文混排
+    assert fmt.format_content("你好!Hello.") == "你好! Hello."
+    # 中文顿号与英文混排
+    assert fmt.format_content("HTML、CSS、JavaScript") == "HTML、CSS、JavaScript"
+    # 英文逗号与英文混排
+    assert fmt.format_content("HTML,CSS,JavaScript") == "HTML, CSS, JavaScript"
+
+
+def test_bracket_spacing() -> None:
+    fmt = MarkdownFormatter()
+    # 中文括号内英文不加空格
+    assert fmt.format_content("这是（English）") == "这是（English）"
+    # 中文括号内中文不加空格
+    assert fmt.format_content("English（这是中文）") == "English（这是中文）"
+    # 英文括号内英文正常
+    assert fmt.format_content("(Hello)World") == "(Hello) World"
+    # 中文括号内中文正常
+    assert fmt.format_content("（你好）世界") == "（你好）世界"
+
+
+def test_version_protection() -> None:
+    fmt = MarkdownFormatter()
+    # 版本号不加空格
+    assert fmt.format_content("当前版本为v1.2.3") == "当前版本为 v1.2.3"
+    assert fmt.format_content("v2.0.0-beta") == "v2.0.0-beta"
+    # 版本号与中英文混排
+    assert fmt.format_content("升级到v1.2.3后体验更好") == "升级到 v1.2.3 后体验更好"
+    # 中文版本号不加空格
+    assert fmt.format_content("当前版本为v主版本.次版本.修订版本") == "当前版本为 v主版本.次版本.修订版本"
+    assert fmt.format_content("v主版本.次版本.修订版本发布") == "v主版本.次版本.修订版本发布"
