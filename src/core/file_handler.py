@@ -2,186 +2,97 @@
 File handling module for markdown-spacer.
 """
 
-import shutil
-from pathlib import Path
-from typing import Optional
-
-from .formatter import MarkdownFormatter
+import os
+from typing import Dict, List
 
 
-class FileHandler:
-    """Handle file operations for markdown-spacer."""
+def is_markdown_file(filename: str) -> bool:
+    """判断文件名是否为 Markdown 文件（.md/.markdown 且主文件名非空）"""
+    base, ext = os.path.splitext(filename)
+    return ext.lower() in (".md", ".markdown") and base != ""
 
-    def __init__(self) -> None:
-        """Initialize the file handler."""
-        self.markdown_extensions = {".md", ".markdown"}
 
-    def process_single_file(
-        self,
-        input_path: Path,
-        output_path: Optional[Path] = None,
-        formatter: Optional[MarkdownFormatter] = None,
-        backup: bool = False,
-    ) -> bool:
-        """Process a single markdown file.
-
-        Args:
-            input_path: Path to input file
-            output_path: Path to output file (optional)
-            formatter: Formatter instance (optional)
-            backup: Whether to create backup
-
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # Validate input file
-            if not input_path.exists():
-                print(f"Error: File not found: {input_path}")
+def is_valid_markdown_content(filepath: str) -> bool:
+    """判断文件内容是否为 Markdown：首个非空行以 # 或 --- 开头。"""
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("---") or line.startswith("#"):
+                    return True
                 return False
+        return False
+    except Exception:
+        return False
 
-            if not self._is_markdown_file(input_path):
-                print(f"Error: Not a markdown file: {input_path}")
-                return False
 
-            # Create formatter if not provided
-            if formatter is None:
-                formatter = MarkdownFormatter()
+def read_markdown_file(filepath: str) -> str:
+    """读取 Markdown 文件内容，UTF-8 编码，返回字符串。"""
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        raise e
 
-            # Read input file
-            content = self._read_file(input_path)
-            if content is None:
-                return False
 
-            # Create backup if requested
-            if backup:
-                self._create_backup(input_path)
+def write_markdown_file(filepath: str, content: str) -> None:
+    """将内容写入 Markdown 文件，UTF-8 编码，覆盖写入。"""
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        raise e
 
-            # Format content
-            formatted_content = formatter.format_content(content)
 
-            # Determine output path
-            if output_path is None:
-                output_path = input_path
+def find_markdown_files(directory: str, recursive: bool = True) -> List[str]:
+    """查找目录下所有 Markdown 文件，支持递归与非递归。
+    只返回内容合法的 Markdown 文件。
+    返回文件路径列表（字符串）。
+    """
+    result = []
+    if recursive:
+        for root, _, files in os.walk(directory):
+            for name in files:
+                path = os.path.join(root, name)
+                if is_markdown_file(name) and is_valid_markdown_content(path):
+                    result.append(path)
+    else:
+        for name in os.listdir(directory):
+            path = os.path.join(directory, name)
+            if (
+                os.path.isfile(path)
+                and is_markdown_file(name)
+                and is_valid_markdown_content(path)
+            ):
+                result.append(path)
+    return result
 
-            # Write output file
-            return self._write_file(output_path, formatted_content)
 
-        except Exception as e:
-            print(f"Error processing file {input_path}: {e}")
-            return False
+def read_markdown_files(filepaths: List[str]) -> Dict[str, str]:
+    """批量读取多个 Markdown 文件，返回 {文件路径: 内容} 映射。只读取内容合法的 Markdown 文件。"""
+    result = {}
+    for path in filepaths:
+        if is_markdown_file(path) and is_valid_markdown_content(path):
+            try:
+                result[path] = read_markdown_file(path)
+            except Exception:
+                pass
+    return result
 
-    def process_directory(
-        self,
-        directory_path: Path,
-        formatter: Optional[MarkdownFormatter] = None,
-        backup: bool = False,
-        recursive: bool = False,
-    ) -> int:
-        """Process all markdown files in a directory.
 
-        Args:
-            directory_path: Path to directory
-            formatter: Formatter instance (optional)
-            backup: Whether to create backups
-            recursive: Whether to process subdirectories
-
-        Returns:
-            Number of files processed
-        """
-        if not directory_path.exists():
-            print(f"Error: Directory not found: {directory_path}")
-            return 0
-
-        if not directory_path.is_dir():
-            print(f"Error: Not a directory: {directory_path}")
-            return 0
-
-        # Create formatter if not provided
-        if formatter is None:
-            formatter = MarkdownFormatter()
-
-        # Find markdown files
-        if recursive:
-            markdown_files = list(directory_path.rglob("*.md")) + list(
-                directory_path.rglob("*.markdown")
-            )
-        else:
-            markdown_files = [
-                f for f in directory_path.iterdir() if self._is_markdown_file(f)
-            ]
-
-        # Process each file
-        processed_count = 0
-        for file_path in markdown_files:
-            if self.process_single_file(file_path, None, formatter, backup):
-                processed_count += 1
-
-        return processed_count
-
-    def _is_markdown_file(self, file_path: Path) -> bool:
-        """Check if file is a markdown file.
-
-        Args:
-            file_path: Path to file
-
-        Returns:
-            True if markdown file
-        """
-        return (
-            file_path.is_file() and file_path.suffix.lower() in self.markdown_extensions
-        )
-
-    def _read_file(self, file_path: Path) -> Optional[str]:
-        """Read file content with UTF-8 encoding.
-
-        Args:
-            file_path: Path to file
-
-        Returns:
-            File content or None if error
-        """
+def write_markdown_files(file_contents: Dict[str, str], backup: bool = False) -> None:
+    """批量写入内容到多个 Markdown 文件，支持备份模式。遇到异常只跳过失败文件。"""
+    for path, content in file_contents.items():
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            print(f"Error reading file {file_path}: {e}")
-            return None
-
-    def _write_file(self, file_path: Path, content: str) -> bool:
-        """Write content to file with UTF-8 encoding.
-
-        Args:
-            file_path: Path to file
-            content: Content to write
-
-        Returns:
-            True if successful
-        """
-        try:
-            # Ensure parent directory exists
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            return True
-        except Exception as e:
-            print(f"Error writing file {file_path}: {e}")
-            return False
-
-    def _create_backup(self, file_path: Path) -> bool:
-        """Create backup of file.
-
-        Args:
-            file_path: Path to file
-
-        Returns:
-            True if successful
-        """
-        try:
-            backup_path = file_path.with_suffix(file_path.suffix + ".bak")
-            shutil.copy2(file_path, backup_path)
-            return True
-        except Exception as e:
-            print(f"Error creating backup for {file_path}: {e}")
-            return False
+            if backup and os.path.isfile(path):
+                backup_path = path + ".bak"
+                with (
+                    open(path, "r", encoding="utf-8") as fsrc,
+                    open(backup_path, "w", encoding="utf-8") as fdst,
+                ):
+                    fdst.write(fsrc.read())
+            write_markdown_file(path, content)
+        except Exception:
+            pass  # 跳过失败文件
