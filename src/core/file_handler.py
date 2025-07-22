@@ -48,27 +48,33 @@ def write_markdown_file(filepath: str, content: str) -> None:
 
 def find_markdown_files(directory: str, recursive: bool = True) -> List[str]:
     """查找目录下所有 Markdown 文件，支持递归与非递归。
+    只返回内容合法的 Markdown 文件。
     返回文件路径列表（字符串）。
     """
     result = []
     if recursive:
         for root, _, files in os.walk(directory):
             for name in files:
-                if is_markdown_file(name):
-                    result.append(os.path.join(root, name))
+                path = os.path.join(root, name)
+                if is_markdown_file(name) and is_valid_markdown_content(path):
+                    result.append(path)
     else:
         for name in os.listdir(directory):
             path = os.path.join(directory, name)
-            if os.path.isfile(path) and is_markdown_file(name):
+            if (
+                os.path.isfile(path)
+                and is_markdown_file(name)
+                and is_valid_markdown_content(path)
+            ):
                 result.append(path)
     return result
 
 
 def read_markdown_files(filepaths: List[str]) -> Dict[str, str]:
-    """批量读取多个 Markdown 文件，返回 {文件路径: 内容} 映射。只读取合法 Markdown 文件。"""
+    """批量读取多个 Markdown 文件，返回 {文件路径: 内容} 映射。只读取内容合法的 Markdown 文件。"""
     result = {}
     for path in filepaths:
-        if is_markdown_file(path):
+        if is_markdown_file(path) and is_valid_markdown_content(path):
             try:
                 result[path] = read_markdown_file(path)
             except Exception:
