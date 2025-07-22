@@ -151,3 +151,37 @@ def test_date_protection() -> None:
     assert fmt.format_content("2025年7月22号") == "2025年7月22号"
     assert fmt.format_content("7月22号") == "7月22号"
     assert fmt.format_content("7-22") == "7-22"
+
+
+def test_chinese_quotes_bold() -> None:
+    # 默认不加粗
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("他说：“Hello世界”") == "他说：“Hello 世界”"
+    # 加粗开关为 True
+    fmt_bold = MarkdownFormatter(bold_quotes=True)
+    assert fmt_bold.format_content("他说：“Hello世界”") == "他说：**Hello 世界**"
+    # 多个双引号
+    assert fmt_bold.format_content("之前“你好”与“world”") == "之前 **你好** 与 **world**"
+    # 嵌套双引号（只加粗最外层，不处理内层）
+    assert fmt_bold.format_content("“外层“内层”内容”") == "“外层“内层”内容”"
+    # 特殊内容保护：代码块内双引号不加粗
+    code = """```
+“代码块内容”
+```
+"""
+    assert fmt_bold.format_content(code) == code
+    # 行内代码内双引号不加粗
+    inline = "`“inline”`"
+    assert fmt_bold.format_content(inline) == inline
+    # 列表项中的双引号加粗
+    assert fmt_bold.format_content("- “你好”世界") == "- **你好** 世界"
+    # 有序列表中的双引号加粗
+    assert fmt_bold.format_content("1. “你好”世界") == "1. **你好** 世界"
+    # 标题中的双引号加粗
+    assert fmt_bold.format_content("# “你好”世界") == "# **你好** 世界"
+    # 引用块中的双引号加粗
+    assert fmt_bold.format_content("> “你好”世界") == "> **你好** 世界"
+    # 表格行中的双引号加粗
+    table = "| “你好”世界 | “abc”def |\n| ---- | ---- |\n| “foo”bar | baz |"
+    expected = "| **你好** 世界 | **abc** def |\n| ---- | ---- |\n| **foo** bar | baz |"
+    assert fmt_bold.format_content(table) == expected

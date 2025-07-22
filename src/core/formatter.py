@@ -240,7 +240,27 @@ class MarkdownFormatter:
         # 英文右括号后加空格
         formatted = self._patterns["en_rparen_after"].sub(r"\1 \2", formatted)
         if self.bold_quotes:
-            formatted = self._patterns["chinese_quotes"].sub(r"**\1**", formatted)
+
+            def _bold_quotes_with_space(m: re.Match[str]) -> str:
+                content = m.group(1)
+                # 如果内容中还有“或”，则认为是嵌套，直接返回原文
+                if "“" in content or "”" in content:
+                    return m.group(0)
+                start, end = m.start(), m.end()
+                before = formatted[start - 1] if start > 0 else ""
+                after = formatted[end] if end < len(formatted) else ""
+                bold = f"**{content}**"
+                need_space_before = before and re.match(r"[\w\u4e00-\u9fa5]", before)
+                need_space_after = after and re.match(r"[\w\u4e00-\u9fa5]", after)
+                return (
+                    (" " if need_space_before else "")
+                    + bold
+                    + (" " if need_space_after else "")
+                )
+
+            formatted = self._patterns["chinese_quotes"].sub(
+                _bold_quotes_with_space, formatted
+            )
         formatted = self._patterns["chinese_hyphen"].sub(r"\1 - \2", formatted)
         # 4.5 应用自定义扩展规则（如有）
         for rule in self._custom_rules:
