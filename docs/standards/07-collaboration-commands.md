@@ -54,7 +54,25 @@ git push origin 分支名
 
 ## 3. 开发流程指令
 
-### 3.1 环境搭建流程
+### 3.0 新会话初始化
+
+**指令**：`init-session`
+
+**步骤**：
+
+1. 读取协作指令集：`docs/standards/07-collaboration-commands.md`
+2. 确认当前项目状态和分支
+3. 根据任务类型切换合适身份
+4. 开始具体任务执行
+
+### 3.1 身份切换规范
+
+**系统架构师**：技术设计、架构规划、环境搭建
+**高级 Python 开发工程师**：核心算法、代码实现、性能优化  
+**文档工程师**：文档编写、格式规范、内容整理
+**测试工程师**：测试用例、质量保证、问题排查
+
+### 3.2 环境搭建流程
 
 **指令**：`setup-dev-env`
 
@@ -67,7 +85,7 @@ git push origin 分支名
 5. 提交并推送：`git add . && git commit -m "feat: 环境搭建" && git push origin feature/setup-development-environment`
 6. 创建 PR，等待合并
 
-### 3.2 功能开发流程
+### 3.3 功能开发流程
 
 **指令**：`dev-feature 功能名称`
 
@@ -80,7 +98,7 @@ git push origin 分支名
 5. 提交并推送
 6. 创建 PR，等待代码审查
 
-### 3.3 文档编写流程
+### 3.4 文档编写流程
 
 **指令**：`write-doc 文档类型 文档名称`
 
@@ -115,6 +133,8 @@ git push origin 分支名
 
 | 指令 | 说明 | 示例 |
 | ---- | ---- | ---- |
+| `init-session` | 新会话初始化 | 读取指令集，确认状态，切换身份 |
+| `switch-role 角色名` | 身份切换 | `switch-role 系统架构师` |
 | `setup-dev-env` | 环境搭建 | 完整的环境搭建流程 |
 | `dev-feature 核心算法` | 功能开发 | 开发核心算法功能 |
 | `test-feature 功能名称` | 功能测试 | 测试指定功能 |
