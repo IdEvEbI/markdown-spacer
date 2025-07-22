@@ -101,8 +101,6 @@ class FileHandler:
         if formatter is None:
             formatter = MarkdownFormatter()
 
-        processed_count = 0
-
         # Find markdown files
         if recursive:
             markdown_files = list(directory_path.rglob("*.md")) + list(
@@ -114,6 +112,7 @@ class FileHandler:
             ]
 
         # Process each file
+        processed_count = 0
         for file_path in markdown_files:
             if self.process_single_file(file_path, None, formatter, backup):
                 processed_count += 1
