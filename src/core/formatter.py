@@ -46,6 +46,10 @@ class MarkdownFormatter:
             "chinese_number": re.compile(r"([\u4e00-\u9fa5])(\d)"),
             # 数字与中文之间添加空格
             "number_chinese": re.compile(r"(\d)([\u4e00-\u9fa5])"),
+            # 数字与英文之间添加空格
+            "number_english": re.compile(r"(\d)([a-zA-Z])"),
+            # 英文与数字之间添加空格
+            "english_number": re.compile(r"([a-zA-Z])(\d)"),
             # 数学符号连接，A+B -> A + B，张三-李四 -> 张三 - 李四
             "math_symbols": re.compile(
                 r"([\u4e00-\u9fa5a-zA-Z0-9])([+\-/*=<>])([\u4e00-\u9fa5a-zA-Z0-9])"
@@ -80,7 +84,6 @@ class MarkdownFormatter:
         formatted_lines = []
         in_code_block = False
         in_math_block = False
-        in_table_block = False
         for idx, line in enumerate(lines):
             # 检查多行代码块
             if line.strip().startswith("```"):
@@ -100,20 +103,8 @@ class MarkdownFormatter:
                     )
                 formatted_lines.append(line)
                 continue
-            # 检查多行表格块（连续多行均含 |，整体跳过）
-            if "|" in line and not in_code_block and not in_math_block:
-                in_table_block = True
-                if self.debug:
-                    logging.debug(f"Line {idx}: 表格行 -> {line}")
-            else:
-                in_table_block = False
             # 跳过所有多行保护块
-            if (
-                in_code_block
-                or in_math_block
-                or in_table_block
-                or self._is_protected_content(line)
-            ):
+            if in_code_block or in_math_block or self._is_protected_content(line):
                 if self.debug:
                     logging.debug(f"Line {idx}: 跳过特殊内容 -> {line}")
                 formatted_lines.append(line)
@@ -165,6 +156,8 @@ class MarkdownFormatter:
         formatted = self._patterns["english_chinese"].sub(r"\1 \2", formatted)
         formatted = self._patterns["chinese_number"].sub(r"\1 \2", formatted)
         formatted = self._patterns["number_chinese"].sub(r"\1 \2", formatted)
+        formatted = self._patterns["number_english"].sub(r"\1 \2", formatted)
+        formatted = self._patterns["english_number"].sub(r"\1 \2", formatted)
         formatted = self._patterns["math_symbols"].sub(r"\1 \2 \3", formatted)
         if self.bold_quotes:
             formatted = self._patterns["chinese_quotes"].sub(r"**\1**", formatted)
@@ -206,17 +199,5 @@ class MarkdownFormatter:
             return True
         # 数学公式
         if re.search(r"\$\$.*\$\$", line) or re.search(r"\$.*\$", line):
-            return True
-        # 表格（以 | 分隔）
-        if "|" in line:
-            return True
-        # 引用块
-        if line.strip().startswith(">"):
-            return True
-        # 列表项
-        if line.strip().startswith(("- ", "* ", "+ ")):
-            return True
-        # 标题行
-        if line.strip().startswith("#"):
             return True
         return False

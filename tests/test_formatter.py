@@ -52,16 +52,37 @@ def test_link_and_image_protection() -> None:
 def test_table_protection() -> None:
     fmt = MarkdownFormatter()
     table = "| 列1 | 列2English |\n| ---- | ---- |\n| 中文 | English |"
-    assert fmt.format_content(table) == table
+    expected = "| 列 1 | 列 2 English |\n| ---- | ---- |\n| 中文 | English |"
+    assert fmt.format_content(table) == expected
 
 
 def test_list_and_title_protection() -> None:
     fmt = MarkdownFormatter()
-    assert fmt.format_content("- 中文English") == "- 中文English"
-    assert fmt.format_content("# 中文English") == "# 中文English"
+    assert fmt.format_content("- 中文English") == "- 中文 English"
+    assert fmt.format_content("# 中文English") == "# 中文 English"
 
 
 def test_math_formula_protection() -> None:
     fmt = MarkdownFormatter()
     assert fmt.format_content("$中文English$") == "$中文English$"
     assert fmt.format_content("$$\n中文English\n$$") == "$$\n中文English\n$$"
+
+
+def test_table_spacing() -> None:
+    fmt = MarkdownFormatter()
+    table = "| 列1 | 列2English |\n| ---- | ---- |\n| 中文 | English中文 |"
+    expected = "| 列 1 | 列 2 English |\n| ---- | ---- |\n| 中文 | English 中文 |"
+    assert fmt.format_content(table) == expected
+
+
+def test_list_spacing() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("- 中文English") == "- 中文 English"
+    assert fmt.format_content("* English中文") == "* English 中文"
+    assert fmt.format_content("+ 中文123") == "+ 中文 123"
+
+
+def test_title_spacing() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("# 中文English") == "# 中文 English"
+    assert fmt.format_content("## English中文") == "## English 中文"
