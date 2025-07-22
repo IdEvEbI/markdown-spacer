@@ -1,0 +1,26 @@
+{
+    // Python 解释器设置
+    "python.defaultInterpreterPath": "./venv/bin/python",
+    // 测试设置
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests/"
+    ],
+    // 文件排除设置
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/venv": true,
+        "**/.pytest_cache": true
+    },
+    // 编辑器设置
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    // 文件关联设置
+    "files.associations": {
+        "*.toml": "toml",
+        "*.md": "markdown"
+    }
+}
