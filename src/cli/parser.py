@@ -3,6 +3,7 @@ Command line argument parser for markdown-spacer.
 """
 
 import argparse
+import sys
 from pathlib import Path
 
 
@@ -18,14 +19,18 @@ Examples:
   markdown-spacer -i input.md -o output.md
   markdown-spacer -r docs/
   markdown-spacer -b -q input.md
+  markdown-spacer -s input.md
         """,
     )
 
-    # Input/Output arguments
-    parser.add_argument(
+    # Input/Output arguments (互斥组: 位置参数 input 与 -i/--input)
+    input_group = parser.add_mutually_exclusive_group()
+    input_group.add_argument(
         "input", nargs="?", type=Path, help="Input file or directory (default: stdin)"
     )
-    parser.add_argument("-i", "--input", type=Path, help="Input file or directory")
+    input_group.add_argument(
+        "-i", "--input", dest="input_opt", type=Path, help="Input file or directory"
+    )
     parser.add_argument(
         "-o",
         "--output",
@@ -49,21 +54,33 @@ Examples:
         action="store_true",
         help="Make Chinese double quotes content bold",
     )
+    parser.add_argument(
+        "-s",
+        "--silent",
+        action="store_true",
+        help="Silent mode (suppress normal output, only show errors)",
+    )
 
     # General options
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose output"
+        "-v", "--version", action="version", version="markdown-spacer 0.1.0"
     )
-    parser.add_argument("--version", action="version", version="markdown-spacer 0.1.0")
+    # argparse 默认已支持 -h/--help
 
     args = parser.parse_args()
 
-    # Handle input argument conflicts
-    if args.input and parser.get_default("input"):
-        parser.error("Cannot specify input file twice")
+    # 参数整合与冲突处理
+    # 优先使用 -i/--input，其次位置参数 input
+    if getattr(args, "input_opt", None):
+        args.input = args.input_opt
+    delattr(args, "input_opt")
 
-    # Use positional argument if no -i specified
-    if not args.input and parser.get_default("input"):
-        args.input = parser.get_default("input")
+    # input 必须指定（文件、目录或 stdin），否则报错
+    if args.input is None and sys.stdin.isatty():
+        parser.error("No input file, directory, or stdin provided.")
+
+    # output 仅支持单文件处理
+    if args.output and (not args.input or (args.input and args.input.is_dir())):
+        parser.error("--output is only valid when processing a single input file.")
 
     return args

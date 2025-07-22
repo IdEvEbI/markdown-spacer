@@ -21,13 +21,11 @@ if __name__ == "__main__":
 
 try:
     from cli.parser import parse_arguments
-    from core.file_handler import FileHandler
     from core.formatter import MarkdownFormatter
     from utils.logger import setup_logger
 except ImportError:
     # Fallback for when running as module
     from src.cli.parser import parse_arguments
-    from src.core.file_handler import FileHandler
     from src.core.formatter import MarkdownFormatter
     from src.utils.logger import setup_logger
 
@@ -39,30 +37,74 @@ def main() -> None:
         args = parse_arguments()
 
         # Setup logging
-        logger = setup_logger(args.verbose)
+        # silent 模式下只输出错误，否则正常输出
+        logger = setup_logger(verbose=False)
+        if args.silent:
+            import logging
 
-        # Initialize formatter and file handler
+            logger.setLevel(logging.ERROR)
+
+        # Initialize formatter
         formatter = MarkdownFormatter(bold_quotes=args.bold_quotes)
-        file_handler = FileHandler()
 
         # Process files
         if args.input:
+            import os
+
+            from core.file_handler import (
+                find_markdown_files,
+                is_markdown_file,
+                read_markdown_file,
+                write_markdown_file,
+            )
+
             if args.input.is_file():
-                # Single file processing
-                result = file_handler.process_single_file(
-                    args.input, args.output, formatter, args.backup
-                )
-                if result:
-                    logger.info(f"Successfully processed: {args.input}")
-                else:
-                    logger.error(f"Failed to process: {args.input}")
+                # 单文件处理
+                if not is_markdown_file(str(args.input)):
+                    logger.error(f"Not a markdown file: {args.input}")
                     sys.exit(1)
-            else:
-                # Directory processing
-                processed_count = file_handler.process_directory(
-                    args.input, formatter, args.backup, args.recursive
+                try:
+                    content = read_markdown_file(str(args.input))
+                    formatted = formatter.format_content(content)
+                    output_path = args.output if args.output else args.input
+                    if args.backup and os.path.isfile(output_path):
+                        backup_path = str(output_path) + ".bak"
+                        with (
+                            open(output_path, "r", encoding="utf-8") as fsrc,
+                            open(backup_path, "w", encoding="utf-8") as fdst,
+                        ):
+                            fdst.write(fsrc.read())
+                    write_markdown_file(str(output_path), formatted)
+                    logger.info(f"Successfully processed: {args.input}")
+                except Exception as e:
+                    logger.error(f"Failed to process: {args.input}, error: {e}")
+                    sys.exit(1)
+            elif args.input.is_dir():
+                # 目录处理
+                files = find_markdown_files(str(args.input), recursive=args.recursive)
+                success, fail = 0, 0
+                for f in files:
+                    try:
+                        content = read_markdown_file(f)
+                        formatted = formatter.format_content(content)
+                        if args.backup and os.path.isfile(f):
+                            backup_path = f + ".bak"
+                            with (
+                                open(f, "r", encoding="utf-8") as fsrc,
+                                open(backup_path, "w", encoding="utf-8") as fdst,
+                            ):
+                                fdst.write(fsrc.read())
+                        write_markdown_file(f, formatted)
+                        success += 1
+                    except Exception as e:
+                        logger.error(f"Failed to process: {f}, error: {e}")
+                        fail += 1
+                logger.info(
+                    f"Processed {len(files)} files, success: {success}, fail: {fail}"
                 )
-                logger.info(f"Processed {processed_count} files")
+            else:
+                logger.error(f"Input is neither file nor directory: {args.input}")
+                sys.exit(1)
         else:
             # Read from stdin, write to stdout
             content = sys.stdin.read()
