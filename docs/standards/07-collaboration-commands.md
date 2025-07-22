@@ -102,6 +102,39 @@ git push origin 分支名
 3. 根据任务类型切换合适身份
 4. 开始具体任务执行
 
+### 3.0.1 新会话快速熟悉项目
+
+**指令**：`quick-read-project`
+
+**适用场景**：新会话或新成员加入时，快速熟悉项目全貌与协作规范。
+
+**步骤**：
+
+1. 阅读项目背景与目标：`README.md`
+2. 阅读协作约定：`docs/standards/01-workflow-guide.md`
+3. 阅读文档标准：`docs/01-documentation-standards.md`
+4. 阅读角色切换规范：`docs/standards/03-role-switching-guide.md`
+5. 阅读产品需求文档：`docs/requirements/01-markdown-spacer-requirements.md`
+6. 阅读技术设计方案：`docs/design/01-technical-design.md`
+7. 阅读环境搭建文档：`docs/design/02-environment-setup.md`
+8. 阅读架构概览：`docs/design/03-architecture-overview.md`
+9. （可选）阅读协作指令集本身：`docs/standards/07-collaboration-commands.md`
+10. 阅读代码与提交规范：`docs/standards/05-code-style-guide.md`
+
+**推荐用法**：
+
+- 新会话时直接输入：`quick-read-project`，小克将自动按顺序阅读上述文档并输出要点。
+- 可结合 `switch-role` 指令，快速切换到合适身份。
+
+**示例**：
+
+```text
+quick-read-project
+switch-role 系统架构师
+```
+
+> 由刘凡 & 小克协作制定，2025-07-22。
+
 ### 3.1 身份切换规范
 
 **系统架构师**：技术设计、架构规划、环境搭建
