@@ -2,6 +2,7 @@
 Core formatting algorithm for markdown-spacer.
 """
 
+import logging
 import re
 from typing import Dict, List, Optional, Pattern
 
@@ -13,6 +14,7 @@ class MarkdownFormatter:
         self,
         bold_quotes: bool = False,
         custom_rules: Optional[List[Dict[str, Pattern[str]]]] = None,
+        debug: bool = False,
     ) -> None:
         """Initialize the formatter.
 
@@ -20,10 +22,14 @@ class MarkdownFormatter:
             bold_quotes: Whether to make Chinese double quotes content bold
             custom_rules: Optional list of custom regex rules to apply.
                 Each rule: {"name": str, "pattern": Pattern, "repl": str}
+            debug: Whether to enable debug logging
         """
         self.bold_quotes = bold_quotes
         self._patterns = self._create_patterns()
         self._custom_rules = custom_rules or []
+        self.debug = debug
+        if self.debug:
+            logging.basicConfig(level=logging.DEBUG)
 
     def _create_patterns(self) -> Dict[str, re.Pattern]:
         """Create regex patterns for formatting rules.
@@ -79,16 +85,26 @@ class MarkdownFormatter:
             # 检查多行代码块
             if line.strip().startswith("```"):
                 in_code_block = not in_code_block
+                if self.debug:
+                    logging.debug(
+                        f"Line {idx}: {'进入' if in_code_block else '退出'}代码块 -> {line}"
+                    )
                 formatted_lines.append(line)
                 continue
             # 检查多行数学公式块
             if line.strip().startswith("$$"):
                 in_math_block = not in_math_block
+                if self.debug:
+                    logging.debug(
+                        f"Line {idx}: {'进入' if in_math_block else '退出'}数学公式块 -> {line}"
+                    )
                 formatted_lines.append(line)
                 continue
             # 检查多行表格块（连续多行均含 |，整体跳过）
             if "|" in line and not in_code_block and not in_math_block:
                 in_table_block = True
+                if self.debug:
+                    logging.debug(f"Line {idx}: 表格行 -> {line}")
             else:
                 in_table_block = False
             # 跳过所有多行保护块
@@ -98,6 +114,8 @@ class MarkdownFormatter:
                 or in_table_block
                 or self._is_protected_content(line)
             ):
+                if self.debug:
+                    logging.debug(f"Line {idx}: 跳过特殊内容 -> {line}")
                 formatted_lines.append(line)
                 continue
             formatted_lines.append(self._format_line(line))
@@ -113,6 +131,8 @@ class MarkdownFormatter:
             Formatted line
         """
         if self._is_protected_content(line):
+            if self.debug:
+                logging.debug(f"跳过单行特殊内容: {line}")
             return line
 
         formatted = line
@@ -134,6 +154,8 @@ class MarkdownFormatter:
                 key = f"__PROTECT_{placeholder_idx}__"
                 placeholders[key] = m.group(0)
                 placeholder_idx += 1
+                if self.debug:
+                    logging.debug(f"占位保护内容: {m.group(0)} -> {key}")
                 return key
 
             formatted = pattern.sub(_repl, formatted)
@@ -152,10 +174,14 @@ class MarkdownFormatter:
             pattern = rule["pattern"]
             repl = rule["repl"]
             if isinstance(pattern, re.Pattern) and isinstance(repl, str):
+                if self.debug:
+                    logging.debug(f"应用自定义规则: {rule.get('name', pattern)}")
                 formatted = pattern.sub(repl, formatted)
 
         # 3. 还原保护性内容
         for key, value in placeholders.items():
+            if self.debug:
+                logging.debug(f"还原保护内容: {key} -> {value}")
             formatted = formatted.replace(key, value)
 
         return formatted
