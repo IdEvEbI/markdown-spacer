@@ -3,7 +3,7 @@ File handling module for markdown-spacer.
 """
 
 import os
-from typing import List
+from typing import Dict, List
 
 
 def is_markdown_file(filename: str) -> bool:
@@ -40,3 +40,28 @@ def find_markdown_files(directory: str, recursive: bool = True) -> List[str]:
             if os.path.isfile(path) and is_markdown_file(name):
                 result.append(path)
     return result
+
+
+def read_markdown_files(filepaths: List[str]) -> Dict[str, str]:
+    """批量读取多个 Markdown 文件，返回 {文件路径: 内容} 映射。只读取合法 Markdown 文件。"""
+    result = {}
+    for path in filepaths:
+        if is_markdown_file(path):
+            try:
+                result[path] = read_markdown_file(path)
+            except Exception:
+                pass
+    return result
+
+
+def write_markdown_files(file_contents: Dict[str, str], backup: bool = False) -> None:
+    """批量写入内容到多个 Markdown 文件，支持备份模式。"""
+    for path, content in file_contents.items():
+        if backup and os.path.isfile(path):
+            backup_path = path + ".bak"
+            with (
+                open(path, "r", encoding="utf-8") as fsrc,
+                open(backup_path, "w", encoding="utf-8") as fdst,
+            ):
+                fdst.write(fsrc.read())
+        write_markdown_file(path, content)

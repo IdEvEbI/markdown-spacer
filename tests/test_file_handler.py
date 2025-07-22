@@ -89,3 +89,32 @@ def test_find_markdown_files_non_recursive(tmp_path: Path) -> None:
     files = find_markdown_files(str(d1), recursive=False)
     found = sorted(os.path.basename(f) for f in files)
     assert found == ["a.md", "b.markdown"]
+
+
+def test_read_markdown_files(tmp_path: Path) -> None:
+    f1 = tmp_path / "a.md"
+    f2 = tmp_path / "b.markdown"
+    f3 = tmp_path / "c.txt"
+    f1.write_text("A", encoding="utf-8")
+    f2.write_text("B", encoding="utf-8")
+    f3.write_text("C", encoding="utf-8")
+    from src.core.file_handler import read_markdown_files
+
+    result = read_markdown_files([str(f1), str(f2), str(f3)])
+    assert result == {str(f1): "A", str(f2): "B"}
+
+
+def test_write_markdown_files_and_backup(tmp_path: Path) -> None:
+    f1 = tmp_path / "a.md"
+    f2 = tmp_path / "b.markdown"
+    f1.write_text("oldA", encoding="utf-8")
+    f2.write_text("oldB", encoding="utf-8")
+    from src.core.file_handler import write_markdown_files
+
+    file_contents = {str(f1): "Anew", str(f2): "Bnew"}
+    write_markdown_files(file_contents, backup=True)
+    assert f1.read_text(encoding="utf-8") == "Anew"
+    assert f2.read_text(encoding="utf-8") == "Bnew"
+    # 检查备份文件
+    assert (tmp_path / "a.md.bak").read_text(encoding="utf-8") == "oldA"
+    assert (tmp_path / "b.markdown.bak").read_text(encoding="utf-8") == "oldB"
