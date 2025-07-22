@@ -13,7 +13,15 @@
 
 ## 1. 协作策略
 
-- [AI 协作策略](01-workflow-guide.md)
+- [AI 协作策略](docs/standards/01-workflow-guide.md)
+- [协作指令集](docs/standards/07-collaboration-commands.md)
+- [文档内容规范](docs/standards/02-content-standards.md)
+- [协作身份与角色切换规范](docs/standards/03-role-switching-guide.md)
+- [任务协作与分工](docs/standards/04-task-collaboration.md)
+- [代码与提交规范](docs/standards/05-code-style-guide.md)
+- [版本管理与 Changelog 规范](docs/standards/06-versioning-changelog.md)
+- [初始代码结构规范](docs/standards/08-initial-code-structure.md)
+- [代码文档注释规范](docs/standards/09-code-documentation-standards.md)
 
 ## 2. 工作记录
 
@@ -29,36 +37,36 @@
 
 ### 2.2 文档创建阶段
 
-- [x] **协作规范文档** - 创建 `docs/01-workflow-guide.md` 工作流程指南
-- [x] **需求文档** - 创建 `docs/02-markdown-formatter-requirements.md` 产品需求文档
-- [x] **文档结构规范** - 创建 `docs/01-documentation-standards.md` 项目文档结构规范
-- [x] **文档内容规范** - 创建 `docs/standards/02-content-standards.md` 文档内容格式等规范
-- [x] **产品需求更新** - 更新 `docs/requirements/01-markdown-spacer-requirements.md` 产品需求文档
-- [x] **文档导航完善** - 创建 `docs/README.md` 文档目录导航
+- [x] **协作规范文档** - 创建 [docs/standards/01-workflow-guide.md](../standards/01-workflow-guide.md) 工作流程指南
+- [x] **需求文档** - 创建 [docs/requirements/01-markdown-spacer-requirements.md](../requirements/01-markdown-spacer-requirements.md) 产品需求文档
+- [x] **文档结构规范** - 创建 [docs/01-documentation-standards.md](../01-documentation-standards.md) 项目文档结构规范
+- [x] **文档内容规范** - 创建 [docs/standards/02-content-standards.md](../standards/02-content-standards.md) 文档内容格式等规范
+- [x] **产品需求更新** - 更新 [docs/requirements/01-markdown-spacer-requirements.md](../requirements/01-markdown-spacer-requirements.md) 产品需求文档
+- [x] **文档导航完善** - 创建 [docs/README.md](../README.md) 文档目录导航
 
 **待开展任务**:
 
 ### 2.3 技术设计阶段
 
-- [ ] **技术架构设计文档** - 创建 `docs/03-technical-design.md` 技术设计文档
-  - [ ] 系统架构设计
-  - [ ] 核心算法设计
-  - [ ] 命令行接口设计
-  - [ ] 错误处理机制设计
-- [ ] **测试策略设计** - 创建 `docs/04-test-strategy.md` 测试策略文档
-  - [ ] 单元测试设计
-  - [ ] 集成测试设计
-  - [ ] 性能测试设计
+- [x] **技术架构设计文档** - 创建 [docs/design/01-technical-design.md](../design/01-technical-design.md) 技术设计文档
+  - [x] 系统架构设计
+  - [x] 核心算法设计
+  - [x] 命令行接口设计
+  - [x] 错误处理机制设计
+- [x] **测试策略设计** - 已包含于 [docs/design/01-technical-design.md](../design/01-technical-design.md)
+  - [x] 单元测试设计
+  - [x] 集成测试设计
+  - [x] 性能测试设计
 
 ### 2.4 开发环境搭建阶段
 
-- [ ] **项目结构创建** - 建立标准的 Python 项目结构
-  - [ ] 创建 `src/` 目录和核心模块
-  - [ ] 创建 `tests/` 目录和测试文件
-  - [ ] 创建 `requirements.txt` 依赖文件
-- [ ] **开发环境配置** - 配置开发工具和环境
-  - [ ] 配置 flake8 静态检查
-  - [ ] 配置 pytest 测试框架
+- [x] **项目结构创建** - 建立标准的 Python 项目结构
+  - [x] 创建 `src/` 目录和核心模块
+  - [x] 创建 `tests/` 目录和测试文件
+  - [x] 创建 `requirements.txt` 依赖文件
+- [x] **开发环境配置** - 配置开发工具和环境
+  - [x] 配置 flake8 静态检查
+  - [x] 配置 pytest 测试框架
   - [ ] 配置 pre-commit hooks
 
 ### 2.5 核心功能开发阶段
@@ -122,10 +130,10 @@
 - [x] 技术栈确定
 - [x] 文档创建
 
-### 4.2 第二阶段：技术设计 🔄
+### 4.2 第二阶段：技术设计 ✅
 
-- [ ] 技术架构设计
-- [ ] 测试策略设计
+- [x] 技术架构设计
+- [x] 测试策略设计
 - [ ] 开发环境搭建
 
 ### 4.3 第三阶段：核心开发 ⏳
