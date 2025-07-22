@@ -16,15 +16,23 @@ import sys
 from pathlib import Path
 
 # Add src to Python path for development
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+if __name__ == "__main__":
+    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from cli.parser import parse_arguments
-from core.file_handler import FileHandler
-from core.formatter import MarkdownFormatter
-from utils.logger import setup_logger
+try:
+    from cli.parser import parse_arguments
+    from core.file_handler import FileHandler
+    from core.formatter import MarkdownFormatter
+    from utils.logger import setup_logger
+except ImportError:
+    # Fallback for when running as module
+    from src.cli.parser import parse_arguments
+    from src.core.file_handler import FileHandler
+    from src.core.formatter import MarkdownFormatter
+    from src.utils.logger import setup_logger
 
 
-def main():
+def main() -> None:
     """Main entry point for the markdown-spacer tool."""
     try:
         # Parse command line arguments

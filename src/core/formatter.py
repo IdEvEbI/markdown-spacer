@@ -17,7 +17,7 @@ class MarkdownFormatter:
         self.bold_quotes = bold_quotes
         self._compile_patterns()
 
-    def _compile_patterns(self):
+    def _compile_patterns(self) -> None:
         """Compile regex patterns for better performance."""
         # Core spacing patterns
         self.patterns = {

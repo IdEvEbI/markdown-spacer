@@ -12,7 +12,7 @@ from .formatter import MarkdownFormatter
 class FileHandler:
     """Handle file operations for markdown-spacer."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the file handler."""
         self.markdown_extensions = {".md", ".markdown"}
 
