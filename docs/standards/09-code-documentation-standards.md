@@ -125,7 +125,7 @@ Main classes:
 - **时序图**：重要交互流程
 - **类图**：关键类关系
 
-## 4. API文档规范
+## 4. API 文档规范
 
 ### 4.1 接口文档
 
@@ -153,10 +153,8 @@ Main classes:
 | PermissionError | 无写入权限 |
 
 ### 使用示例
-```python
-formatter = MarkdownFormatter()
-result = formatter.format_content("中文English")
-```
+
+示例代码
 
 ```
 
