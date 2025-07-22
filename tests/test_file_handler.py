@@ -118,3 +118,52 @@ def test_write_markdown_files_and_backup(tmp_path: Path) -> None:
     # 检查备份文件
     assert (tmp_path / "a.md.bak").read_text(encoding="utf-8") == "oldA"
     assert (tmp_path / "b.markdown.bak").read_text(encoding="utf-8") == "oldB"
+
+
+def test_read_file_permission_error(tmp_path: Path) -> None:
+    f = tmp_path / "no_read.md"
+    f.write_text("data", encoding="utf-8")
+    f.chmod(0o000)  # 移除所有权限
+    from src.core.file_handler import read_markdown_file
+
+    try:
+        read_markdown_file(str(f))
+    except Exception as e:
+        assert isinstance(e, PermissionError)
+    else:
+        assert False, "未抛出 PermissionError"
+    f.chmod(0o644)  # 恢复权限，便于 pytest 清理
+
+
+def test_write_file_permission_error(tmp_path: Path) -> None:
+    d = tmp_path / "readonly"
+    d.mkdir()
+    f = d / "a.md"
+    f.write_text("data", encoding="utf-8")
+    d.chmod(0o400)  # 只读目录
+    from src.core.file_handler import write_markdown_file
+
+    try:
+        write_markdown_file(str(f), "newdata")
+    except Exception as e:
+        assert isinstance(e, PermissionError)
+    else:
+        assert False, "未抛出 PermissionError"
+    d.chmod(0o755)  # 恢复权限
+
+
+def test_batch_write_partial_fail(tmp_path: Path) -> None:
+    f1 = tmp_path / "a.md"
+    f2 = tmp_path / "b.md"
+    f1.write_text("A", encoding="utf-8")
+    f2.write_text("B", encoding="utf-8")
+    f2.chmod(0o400)  # 只读
+    from src.core.file_handler import write_markdown_files
+
+    file_contents = {str(f1): "Anew", str(f2): "Bnew"}
+    try:
+        write_markdown_files(file_contents)
+    except Exception:
+        pass  # 允许抛出异常
+    assert f1.read_text(encoding="utf-8") == "Anew"
+    f2.chmod(0o644)
