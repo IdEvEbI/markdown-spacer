@@ -128,3 +128,26 @@ def test_version_protection() -> None:
     # 中文版本号不加空格
     assert fmt.format_content("当前版本为v主版本.次版本.修订版本") == "当前版本为 v主版本.次版本.修订版本"
     assert fmt.format_content("v主版本.次版本.修订版本发布") == "v主版本.次版本.修订版本发布"
+
+
+def test_date_protection() -> None:
+    fmt = MarkdownFormatter()
+    # 纯数字日期
+    assert fmt.format_content("今天是2025-07-22") == "今天是 2025-07-22"
+    assert fmt.format_content("截止日期为07-22") == "截止日期为 07-22"
+    assert fmt.format_content("会议时间：7月22日") == "会议时间：7月22日"
+    assert fmt.format_content("2025年7月22日是个好日子") == "2025年7月22日 是个好日子"
+    # 日期与英文混排
+    assert fmt.format_content("Date: 2025-07-22.") == "Date: 2025-07-22."
+    assert (
+        fmt.format_content("The event is on 2025-07-22.")
+        == "The event is on 2025-07-22."
+    )
+    # 日期与中文混排
+    assert fmt.format_content("请于2025-07-22提交材料") == "请于 2025-07-22 提交材料"
+    # 日期与数字混排
+    assert fmt.format_content("编号2025-07-22-01") == "编号 2025-07-22-01"
+    # 多种日期格式
+    assert fmt.format_content("2025年7月22号") == "2025年7月22号"
+    assert fmt.format_content("7月22号") == "7月22号"
+    assert fmt.format_content("7-22") == "7-22"
