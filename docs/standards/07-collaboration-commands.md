@@ -91,7 +91,7 @@ git push origin 分支名
 
 ## 3. 开发流程指令
 
-### 3.0 新会话初始化
+### 3.1 新会话初始化
 
 **指令**：`init-session`
 
@@ -102,7 +102,7 @@ git push origin 分支名
 3. 根据任务类型切换合适身份
 4. 开始具体任务执行
 
-### 3.0.1 新会话快速熟悉项目
+### 3.2 新会话快速熟悉项目
 
 **指令**：`quick-read-project`
 
@@ -135,14 +135,14 @@ switch-role 系统架构师
 
 > 由刘凡 & 小克协作制定，2025-07-22。
 
-### 3.1 身份切换规范
+### 3.3 身份切换规范
 
 **系统架构师**：技术设计、架构规划、环境搭建
 **高级 Python 开发工程师**：核心算法、代码实现、性能优化  
 **文档工程师**：文档编写、格式规范、内容整理
 **测试工程师**：测试用例、质量保证、问题排查
 
-### 3.2 环境搭建流程
+### 3.4 环境搭建流程
 
 **指令**：`setup-dev-env`
 
@@ -155,7 +155,7 @@ switch-role 系统架构师
 5. 提交并推送：`git add . && git commit -m "feat: 环境搭建" && git push origin feature/setup-development-environment`
 6. 创建 PR，等待合并
 
-### 3.3 功能开发流程
+### 3.5 功能开发流程
 
 **指令**：`dev-feature 功能名称`
 
@@ -168,7 +168,7 @@ switch-role 系统架构师
 5. 提交并推送
 6. 创建 PR，等待代码审查
 
-### 3.4 文档编写流程
+### 3.6 文档编写流程
 
 **指令**：`write-doc 文档类型 文档名称`
 
@@ -178,6 +178,25 @@ switch-role 系统架构师
 2. 创建文档：`docs/类型/编号-文档名称.md`
 3. 遵循 `docs/standards/02-content-standards.md` 格式
 4. 提交文档：`git add docs/类型/编号-文档名称.md && git commit -m "docs: 添加文档名称" && git push origin 分支名`
+
+### 3.7 任务推进标准流程
+
+**指令**：`plan-and-execute`
+
+**适用场景**：新阶段/新功能开发前，梳理任务、制定计划、逐步推进。
+
+**步骤**：
+
+1. 阅读并梳理 todo-list，明确下一步工作。
+2. 新建并切换到新分支，命名规范如 feature/xxx。
+3. 先编写行动计划文档，团队确认后再执行。
+4. 按计划逐步推进，每一步需负责人确认后再进入下一步。
+
+**@ 语法用法**：
+
+- 在对话或任务分配时，可用 `@助手名` 或 `@角色名` 指定 AI 或团队成员执行任务。
+- 示例：`@小克 阅读 docs/requirements/01-markdown-spacer-requirements.md 并总结要点`
+- 支持与 `switch-role` 指令结合，快速切换身份并执行任务。
 
 ## 4. 常用指令速查
 
@@ -204,9 +223,12 @@ switch-role 系统架构师
 | 指令 | 说明 | 示例 |
 | ---- | ---- | ---- |
 | `init-session` | 新会话初始化 | 读取指令集，确认状态，切换身份 |
+| `quick-read-project` | 快速熟悉项目 | 阅读核心文档，输出要点 |
 | `switch-role 角色名` | 身份切换 | `switch-role 系统架构师` |
 | `setup-dev-env` | 环境搭建 | 完整的环境搭建流程 |
 | `dev-feature 功能名称` | 功能开发 | 开发指定功能 |
+| `write-doc 类型 名称` | 文档编写 | `write-doc design 环境搭建` |
+| `plan-and-execute` | 任务推进标准流程 | 梳理 todo-list，制定计划，逐步推进 |
 | `test-feature 功能名称` | 功能测试 | 测试指定功能 |
 | `sync-feature-to-develop` | Feature 分支合并后清理 | 合并 PR 后本地分支清理 |
 
