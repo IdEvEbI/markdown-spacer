@@ -233,9 +233,69 @@ python_functions = ["test_*"]
 addopts = "-v --cov=src --cov-report=term-missing"
 ```
 
-## 5. 验证环境
+## 5. pre-commit 钩子配置
 
-### 5.1 基础验证
+### 5.1 作用
+
+- 统一和自动化代码风格检查，保障代码质量，减少低级错误进入主分支。
+- 自动执行 black 格式化、flake8 语法检查、isort 导入排序、mypy 类型检查等。
+- 只检查 src/ 和 tests/ 目录下的 Python 代码。
+
+### 5.2 配置步骤
+
+1. 确保已安装 pre-commit（见 requirements-dev.txt 或 pyproject.toml）。
+2. 在项目根目录新建 .pre-commit-config.yaml，内容如下：
+
+   ```yaml
+   repos:
+     - repo: https://github.com/psf/black
+       rev: 23.7.0
+       hooks:
+         - id: black
+           language_version: python3.12
+           files: ^src/|^tests/
+     - repo: https://github.com/pycqa/flake8
+       rev: 6.1.0
+       hooks:
+         - id: flake8
+           additional_dependencies: []
+           files: ^src/|^tests/
+     - repo: https://github.com/PyCQA/isort
+       rev: 5.12.0
+       hooks:
+         - id: isort
+           files: ^src/|^tests/
+     - repo: https://github.com/pre-commit/mirrors-mypy
+       rev: v1.5.1
+       hooks:
+         - id: mypy
+           files: ^src/|^tests/
+   ```
+
+3. 安装 pre-commit 钩子（仅需一次）：
+
+   ```bash
+   pre-commit install
+   ```
+
+4. 手动触发所有文件检查（可选）：
+
+   ```bash
+   pre-commit run --all-files
+   ```
+
+### 5.3 常见问题与说明
+
+- 如需跳过单次 commit 检查，可用 `git commit --no-verify`。
+- 若有大批量格式化需求，建议先手动运行 black/isort，再提交。
+- pre-commit 只会检查 src/ 和 tests/ 目录下的 Python 文件。
+- 钩子配置可根据团队实际需求调整。
+
+> 建议所有开发者本地安装并启用 pre-commit，保障团队协作代码质量一致性。
+
+## 6. 验证环境
+
+### 6.1 基础验证
 
 ```bash
 # 验证 Python 环境
@@ -246,7 +306,7 @@ pip list
 python -c "import src.markdown_spacer; print('项目导入成功')"
 ```
 
-### 5.2 代码质量检查
+### 6.2 代码质量检查
 
 ```bash
 # 代码格式检查
@@ -262,7 +322,7 @@ isort src/ tests/
 mypy src/
 ```
 
-### 5.3 测试验证
+### 6.3 测试验证
 
 ```bash
 # 运行测试
@@ -272,9 +332,9 @@ pytest
 pytest --cov=src --cov-report=html
 ```
 
-## 6. 开发工作流
+## 7. 开发工作流
 
-### 6.1 日常开发流程
+### 7.1 日常开发流程
 
 ```bash
 # 1. 激活虚拟环境
@@ -305,7 +365,7 @@ git commit -m "feat: 功能描述"
 git push origin feature/功能名称
 ```
 
-### 6.2 预提交检查
+### 7.2 预提交检查
 
 项目配置了 pre-commit 钩子，会在提交前自动运行：
 
@@ -314,9 +374,9 @@ git push origin feature/功能名称
 - 代码检查（flake8）
 - 类型检查（mypy）
 
-## 7. 常见问题
+## 8. 常见问题
 
-### 7.1 环境问题
+### 8.1 环境问题
 
 **Q: Python 版本不匹配**
 A: 确保使用 Python 3.12+，可以使用 pyenv 管理 Python 版本
@@ -327,7 +387,7 @@ A: 检查虚拟环境路径，确保使用正确的激活命令
 **Q: 依赖安装失败**
 A: 升级 pip，检查网络连接，尝试使用国内镜像源
 
-### 7.2 开发问题
+### 8.2 开发问题
 
 **Q: 测试失败**
 A: 检查测试环境，确保所有依赖已安装
@@ -338,8 +398,9 @@ A: 运行 `black src/ tests/` 自动格式化代码
 **Q: 类型检查错误**
 A: 根据 mypy 提示修复类型注解
 
-## 8. 版本历史
+## 9. 版本历史
 
 | 版本 | 日期 | 变更内容 | 负责人 |
 | ---- | ---- | -------- | ------ |
 | v1.0 | 2025-07-22 | 初始环境搭建文档 | 刘凡 & 小克 |
+| v1.1 | 2025-07-22 | 增加 pre-commit 钩子配置章节，调整文档结构 | 刘凡 & 小克 |
