@@ -3,20 +3,27 @@ Core formatting algorithm for markdown-spacer.
 """
 
 import re
-from typing import Dict
+from typing import Dict, List, Optional, Pattern
 
 
 class MarkdownFormatter:
     """Core formatter for handling spacing in Markdown content."""
 
-    def __init__(self, bold_quotes: bool = False) -> None:
+    def __init__(
+        self,
+        bold_quotes: bool = False,
+        custom_rules: Optional[List[Dict[str, Pattern[str]]]] = None,
+    ) -> None:
         """Initialize the formatter.
 
         Args:
             bold_quotes: Whether to make Chinese double quotes content bold
+            custom_rules: Optional list of custom regex rules to apply.
+                Each rule: {"name": str, "pattern": Pattern, "repl": str}
         """
         self.bold_quotes = bold_quotes
         self._patterns = self._create_patterns()
+        self._custom_rules = custom_rules or []
 
     def _create_patterns(self) -> Dict[str, re.Pattern]:
         """Create regex patterns for formatting rules.
@@ -66,14 +73,31 @@ class MarkdownFormatter:
         lines = content.split("\n")
         formatted_lines = []
         in_code_block = False
-        for line in lines:
+        in_math_block = False
+        in_table_block = False
+        for idx, line in enumerate(lines):
             # 检查多行代码块
             if line.strip().startswith("```"):
                 in_code_block = not in_code_block
                 formatted_lines.append(line)
                 continue
-            # 跳过代码块、表格、列表等特殊内容
-            if in_code_block or self._is_protected_content(line):
+            # 检查多行数学公式块
+            if line.strip().startswith("$$"):
+                in_math_block = not in_math_block
+                formatted_lines.append(line)
+                continue
+            # 检查多行表格块（连续多行均含 |，整体跳过）
+            if "|" in line and not in_code_block and not in_math_block:
+                in_table_block = True
+            else:
+                in_table_block = False
+            # 跳过所有多行保护块
+            if (
+                in_code_block
+                or in_math_block
+                or in_table_block
+                or self._is_protected_content(line)
+            ):
                 formatted_lines.append(line)
                 continue
             formatted_lines.append(self._format_line(line))
@@ -92,22 +116,47 @@ class MarkdownFormatter:
             return line
 
         formatted = line
+        placeholders = {}
+        placeholder_idx = 0
 
-        # Apply spacing rules
+        # 1. 保护性内容占位（日期、版本号、英文连字符、括号内中英文等）
+        protect_patterns = [
+            self._patterns["date"],
+            self._patterns["version"],
+            self._patterns["english_hyphen"],
+            self._patterns["chinese_paren_english"],
+            self._patterns["english_paren_chinese"],
+        ]
+        for pattern in protect_patterns:
+
+            def _repl(m: re.Match[str]) -> str:
+                nonlocal placeholder_idx
+                key = f"__PROTECT_{placeholder_idx}__"
+                placeholders[key] = m.group(0)
+                placeholder_idx += 1
+                return key
+
+            formatted = pattern.sub(_repl, formatted)
+
+        # 2. 应用空格处理规则
         formatted = self._patterns["chinese_english"].sub(r"\1 \2", formatted)
         formatted = self._patterns["english_chinese"].sub(r"\1 \2", formatted)
         formatted = self._patterns["chinese_number"].sub(r"\1 \2", formatted)
         formatted = self._patterns["number_chinese"].sub(r"\1 \2", formatted)
-
-        # Math symbols
         formatted = self._patterns["math_symbols"].sub(r"\1 \2 \3", formatted)
-
-        # Chinese quotes (optional bold)
         if self.bold_quotes:
             formatted = self._patterns["chinese_quotes"].sub(r"**\1**", formatted)
-
-        # Chinese hyphens
         formatted = self._patterns["chinese_hyphen"].sub(r"\1 - \2", formatted)
+        # 2.5 应用自定义扩展规则（如有）
+        for rule in self._custom_rules:
+            pattern = rule["pattern"]
+            repl = rule["repl"]
+            if isinstance(pattern, re.Pattern) and isinstance(repl, str):
+                formatted = pattern.sub(repl, formatted)
+
+        # 3. 还原保护性内容
+        for key, value in placeholders.items():
+            formatted = formatted.replace(key, value)
 
         return formatted
 
