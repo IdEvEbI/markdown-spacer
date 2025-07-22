@@ -52,6 +52,43 @@ git commit -m "feat: 功能描述"
 git push origin 分支名
 ```
 
+### 2.4 Feature 分支合并后清理
+
+**指令**：`sync-feature-to-develop`
+
+**适用场景**：完成 feature 分支开发并合并到 develop 后，清理本地和远程分支，准备新一轮开发。
+
+**操作步骤**：
+
+1. 切换到 develop 分支
+
+   ```bash
+   git checkout develop
+   ```
+
+2. 拉取 develop 分支最新代码
+
+   ```bash
+   git pull origin develop
+   ```
+
+3. 删除本地 feature 分支
+
+   ```bash
+   git branch -d feature/xxx
+   ```
+
+4. 更新远程分支缓存，清理已删除的远程分支
+
+   ```bash
+   git fetch --prune
+   ```
+
+**注意事项**：
+
+- 合并 PR 后再删除本地分支，确保代码已同步
+- `feature/xxx` 替换为实际分支名
+
 ## 3. 开发流程指令
 
 ### 3.0 新会话初始化
@@ -136,8 +173,9 @@ git push origin 分支名
 | `init-session` | 新会话初始化 | 读取指令集，确认状态，切换身份 |
 | `switch-role 角色名` | 身份切换 | `switch-role 系统架构师` |
 | `setup-dev-env` | 环境搭建 | 完整的环境搭建流程 |
-| `dev-feature 核心算法` | 功能开发 | 开发核心算法功能 |
+| `dev-feature 功能名称` | 功能开发 | 开发指定功能 |
 | `test-feature 功能名称` | 功能测试 | 测试指定功能 |
+| `sync-feature-to-develop` | Feature 分支合并后清理 | 合并 PR 后本地分支清理 |
 
 ## 5. 协作规范
 
@@ -166,42 +204,3 @@ git push origin 分支名
 | 版本 | 日期 | 变更内容 | 负责人 |
 | ---- | ---- | -------- | ------ |
 | v1.0 | 2025-07-22 | 初始协作指令集 | 刘凡 & 小克 |
-
----
-
-### 指令名称：sync-feature-to-develop
-
-**适用场景**：完成 feature 分支开发并合并到 develop 后，清理本地和远程分支，准备新一轮开发。
-
-**操作步骤**：
-
-1. 切换到 develop 分支
-
-   ```bash
-   git checkout develop
-   ```
-
-2. 拉取 develop 分支最新代码
-
-   ```bash
-   git pull origin develop
-   ```
-
-3. 删除本地 feature 分支
-
-   ```bash
-   git branch -d feature/xxx
-   ```
-
-4. 更新远程分支缓存，清理已删除的远程分支
-
-   ```bash
-   git fetch --prune
-   ```
-
-**注意事项**：
-
-- 合并 PR 后再删除本地分支，确保代码已同步
-- `feature/xxx` 替换为实际分支名
-
----
