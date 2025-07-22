@@ -167,3 +167,27 @@ def test_batch_write_partial_fail(tmp_path: Path) -> None:
         pass  # 允许抛出异常
     assert f1.read_text(encoding="utf-8") == "Anew"
     f2.chmod(0o644)
+
+
+def test_skip_non_markdown_content(tmp_path: Path) -> None:
+    # 伪装的二进制文件
+    f1 = tmp_path / "fake.md"
+    f1.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00")
+    # 纯文本但无 Markdown 特征
+    f2 = tmp_path / "plain.md"
+    f2.write_text("just some text", encoding="utf-8")
+    # 空文件
+    f3 = tmp_path / "empty.md"
+    f3.write_text("", encoding="utf-8")
+    # 合法 Markdown 文件
+    f4 = tmp_path / "good.md"
+    f4.write_text("# 标题\n内容", encoding="utf-8")
+    f5 = tmp_path / "yaml.md"
+    f5.write_text("---\ntitle: demo\n---\n正文", encoding="utf-8")
+    from src.core.file_handler import is_valid_markdown_content
+
+    assert not is_valid_markdown_content(str(f1))
+    assert not is_valid_markdown_content(str(f2))
+    assert not is_valid_markdown_content(str(f3))
+    assert is_valid_markdown_content(str(f4))
+    assert is_valid_markdown_content(str(f5))

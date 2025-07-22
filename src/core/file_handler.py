@@ -12,6 +12,22 @@ def is_markdown_file(filename: str) -> bool:
     return ext.lower() in (".md", ".markdown") and base != ""
 
 
+def is_valid_markdown_content(filepath: str) -> bool:
+    """判断文件内容是否为 Markdown：首个非空行以 # 或 --- 开头。"""
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("---") or line.startswith("#"):
+                    return True
+                return False
+        return False
+    except Exception:
+        return False
+
+
 def read_markdown_file(filepath: str) -> str:
     """读取 Markdown 文件内容，UTF-8 编码，返回字符串。"""
     try:
