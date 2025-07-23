@@ -65,7 +65,76 @@ class MarkdownFormatter:
         Returns:
             编译好的正则表达式模式字典
         """
+        ext_pattern = "|".join(
+            [
+                "doc",
+                "docx",
+                "xls",
+                "xlsx",
+                "ppt",
+                "pptx",
+                "csv",
+                "tsv",
+                "ods",
+                "odt",
+                "odp",
+                "xlsm",
+                "xltx",
+                "dotx",
+                "potx",
+                "pptm",
+                "docm",
+                "xlsb",
+                "c",
+                "h",
+                "cpp",
+                "cxx",
+                "cc",
+                "hpp",
+                "hxx",
+                "java",
+                "php",
+                "phtml",
+                "inc",
+                "txt",
+                "md",
+                "markdown",
+                "py",
+                "toml",
+                "ini",
+                "json",
+                "yaml",
+                "yml",
+                "cfg",
+                "conf",
+                "bak",
+                "log",
+                "rst",
+                "sh",
+                "bat",
+                "ps1",
+                "js",
+                "ts",
+                "html",
+                "css",
+                "xml",
+                "lock",
+            ]
+        )
         return {
+            # ===== 保护类规则（优先匹配） =====
+            # 文件名/路径/扩展名保护（如 requirements.txt、setup.py、pyproject.toml、
+            # .pre-commit-config.yaml、office、C/C++/Java/PHP 等）
+            "filename": re.compile(
+                r"(?<![\w`])([\w\-]+\.({}))(?![\w])".format(ext_pattern)
+            ),
+            # 技术缩写/带连字符缩写保护（如 UTF-8、JSON-LD、RFC-2616、ISO-8859-1 等）
+            "tech_abbr": re.compile(r"\b([A-Z]{2,}(?:-[A-Z0-9]+)+)\b"),
+            # 工具名/命令名保护（如 flake8、black、isort、mypy 等）
+            "tool_name": re.compile(
+                r"\b(flake8|black|isort|mypy|pytest|pre-commit|pip|setuptools|"
+                r"tox|coverage|bandit|ruff|pylint|nose2?)\b"
+            ),
             # 中文与英文之间添加空格
             "chinese_english": re.compile(r"([\u4e00-\u9fa5])([a-zA-Z])"),
             # 英文与中文之间添加空格
@@ -196,6 +265,26 @@ class MarkdownFormatter:
                 return key
 
             formatted = pattern.sub(_paren_repl, formatted)
+
+        # 1.1 新增：优先保护文件名、技术缩写、工具名
+        protect_patterns_ext = [
+            (self._patterns["filename"], "filename"),
+            (self._patterns["tech_abbr"], "tech_abbr"),
+            (self._patterns["tool_name"], "tool_name"),
+        ]
+        for pattern, ptype in protect_patterns_ext:
+
+            def _repl_ext(m: re.Match[str], t: str = ptype) -> str:
+                nonlocal placeholder_idx
+                key = f"__PROTECT_{t.upper()}_{placeholder_idx}__"
+                placeholders[key] = m.group(0)
+                placeholder_types[key] = t
+                placeholder_idx += 1
+                if self.debug:
+                    logging.debug(f"占位保护内容({t}): {m.group(0)} -> {key}")
+                return key
+
+            formatted = pattern.sub(_repl_ext, formatted)
 
         # 2. 再保护日期、版本号、英文连字符
         protect_patterns = [

@@ -185,3 +185,43 @@ def test_chinese_quotes_bold() -> None:
     table = "| “你好”世界 | “abc”def |\n| ---- | ---- |\n| “foo”bar | baz |"
     expected = "| **你好** 世界 | **abc** def |\n| ---- | ---- |\n| **foo** bar | baz |"
     assert fmt_bold.format_content(table) == expected
+
+
+def test_filename_protection() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("请打开 requirements.txt 文件") == "请打开 requirements.txt 文件"
+    assert fmt.format_content("main.cpp 是 C++ 源码") == "main.cpp 是 C++ 源码"
+    assert fmt.format_content("请编辑 report.docx") == "请编辑 report.docx"
+
+
+def test_tech_abbr_protection() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("请用 UTF-8 编码保存") == "请用 UTF-8 编码保存"
+    assert fmt.format_content("采用 JSON-LD 格式") == "采用 JSON-LD 格式"
+    assert fmt.format_content("协议为 RFC-2616") == "协议为 RFC-2616"
+
+
+def test_tool_name_protection() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("请用 flake8 检查代码") == "请用 flake8 检查代码"
+    assert fmt.format_content("推荐使用 black 格式化") == "推荐使用 black 格式化"
+
+
+def test_backtick_protection() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("`requirements.txt` 是依赖文件") == "`requirements.txt` 是依赖文件"
+    assert fmt.format_content("`UTF-8` 是编码名") == "`UTF-8` 是编码名"
+
+
+def test_combined_protection() -> None:
+    fmt = MarkdownFormatter()
+    assert (
+        fmt.format_content("请用 flake8 检查 main.cpp 是否符合 UTF-8 编码")
+        == "请用 flake8 检查 main.cpp 是否符合 UTF-8 编码"
+    )
+
+
+def test_protection_edge_cases() -> None:
+    fmt = MarkdownFormatter()
+    assert fmt.format_content("2023-07-23_report.docx") == "2023-07-23_report.docx"
+    assert fmt.format_content("v1.2.3-UTF-8") == "v1.2.3-UTF-8"
