@@ -33,7 +33,13 @@ def run_cli(
     args: list[str], input_data: str | None = None
 ) -> subprocess.CompletedProcess[str]:
     cmd = [sys.executable, CLI_PATH] + args
-    result = subprocess.run(cmd, input=input_data, capture_output=True, text=True)
+    # 设置 PYTHONPATH 以包含项目根目录
+    env = os.environ.copy()
+    project_root = os.path.dirname(os.path.dirname(__file__))
+    env["PYTHONPATH"] = project_root
+    result = subprocess.run(
+        cmd, input=input_data, capture_output=True, text=True, env=env
+    )
     return result
 
 

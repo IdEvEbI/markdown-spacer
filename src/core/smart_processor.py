@@ -8,7 +8,6 @@
 import os
 
 from src.core.chunked_processor import ChunkedFileProcessor
-from src.core.file_handler import read_markdown_file, write_markdown_file
 from src.core.formatter import MarkdownFormatter
 from src.core.streaming_processor import StreamingFileProcessor
 
@@ -93,14 +92,17 @@ class SmartFileProcessor:
         try:
             if strategy == ProcessingStrategy.NORMAL:
                 # 普通处理
-                content = read_markdown_file(input_path)
+                with open(input_path, "r", encoding="utf-8") as f:
+                    content = f.read()
                 formatted_content = self.formatter.format_content(content)
-                write_markdown_file(output_path, formatted_content)
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write(formatted_content)
 
             elif strategy == ProcessingStrategy.CHUNKED:
                 # 分块处理
                 content = self.chunked_processor.process_file(input_path)
-                write_markdown_file(output_path, content)
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write(content)
 
             elif strategy == ProcessingStrategy.STREAMING:
                 # 流式处理
@@ -126,7 +128,8 @@ class SmartFileProcessor:
 
         if strategy == ProcessingStrategy.NORMAL:
             # 普通处理
-            content = read_markdown_file(filepath)
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
             return self.formatter.format_content(content)
 
         elif strategy == ProcessingStrategy.CHUNKED:

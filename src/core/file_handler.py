@@ -254,6 +254,8 @@ def batch_process_markdown_files_smart(
         try:
             # 确定输出路径
             if output_dir:
+                # 确保输出目录存在
+                os.makedirs(output_dir, exist_ok=True)
                 filename = os.path.basename(filepath)
                 output_path = os.path.join(output_dir, filename)
             else:
