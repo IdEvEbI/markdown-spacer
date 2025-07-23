@@ -71,7 +71,8 @@ class MarkdownFormatter:
             ),
             # 版本号（保护，不处理），支持英文和中文格式
             "version": re.compile(
-                r"v(\d+\.\d+\.\d+|[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+(-[A-Za-z0-9]+)?)"
+                r"v(\d+\.\d+\.\d+|[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+"
+                r"(-[A-Za-z0-9]+)?)"
             ),
             # 英文连字符（保护，不处理）
             "english_hyphen": re.compile(r"([a-zA-Z]+)-([a-zA-Z]+)"),
@@ -282,7 +283,8 @@ class MarkdownFormatter:
             r"(v\d+\.\d+\.\d+)([A-Za-z\u4e00-\u9fa5])", r"\1 \2", formatted
         )
         formatted = re.sub(
-            r"(v[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+)(?![\u4e00-\u9fa5])([A-Za-z0-9])",
+            r"(v[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+)"
+            r"(?![\u4e00-\u9fa5])([A-Za-z0-9])",
             r"\1 \2",
             formatted,
         )

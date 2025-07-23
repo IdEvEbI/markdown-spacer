@@ -61,7 +61,8 @@ def main() -> None:
             input_path = str(args.input)
             logger.debug(f"[调试] 输入路径: {input_path}")
             logger.debug(
-                f"[调试] os.path.isfile: {os.path.isfile(input_path)}, os.path.isdir: {os.path.isdir(input_path)}"
+                f"[调试] os.path.isfile: {os.path.isfile(input_path)}, "
+                f"os.path.isdir: {os.path.isdir(input_path)}"
             )
             if os.path.isfile(input_path):
                 # 单文件处理
