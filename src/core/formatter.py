@@ -23,6 +23,9 @@ class MarkdownFormatter:
         debug: 是否启用调试日志
     """
 
+    # 类级别的正则表达式缓存，避免重复编译
+    _cached_patterns: Optional[Dict[str, re.Pattern]] = None
+
     def __init__(
         self,
         bold_quotes: bool = False,
@@ -38,13 +41,25 @@ class MarkdownFormatter:
             debug: 是否启用调试日志
         """
         self.bold_quotes = bold_quotes
-        self._patterns = self._create_patterns()
+        self._patterns = self._get_patterns()
         self._custom_rules = custom_rules or []
         self.debug = debug
         if self.debug:
             logging.basicConfig(level=logging.DEBUG)
 
-    def _create_patterns(self) -> Dict[str, re.Pattern]:
+    @classmethod
+    def _get_patterns(cls) -> Dict[str, re.Pattern]:
+        """获取编译好的正则表达式模式，使用类级别缓存。
+
+        Returns:
+            编译好的正则表达式模式字典
+        """
+        if cls._cached_patterns is None:
+            cls._cached_patterns = cls._create_patterns()
+        return cls._cached_patterns
+
+    @classmethod
+    def _create_patterns(cls) -> Dict[str, re.Pattern]:
         """创建格式化规则的正则表达式模式。
 
         Returns:
