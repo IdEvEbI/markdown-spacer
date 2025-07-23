@@ -207,7 +207,7 @@ def process_markdown_file_smart(input_path: str, output_path: str) -> Dict[str, 
         处理结果信息字典
     """
     processor = SmartFileProcessor()
-    result = processor.process_file(input_path, output_path)
+    result: Dict[str, Any] = processor.process_file(input_path, output_path)
     return result
 
 
