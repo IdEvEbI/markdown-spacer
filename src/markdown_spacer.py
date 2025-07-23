@@ -25,11 +25,13 @@ try:
     from cli.parser import parse_arguments
     from core.formatter import MarkdownFormatter
     from utils.logger import setup_logger
+    from utils.performance_monitor import generate_performance_report
 except ImportError:
     # Fallback for when running as module
     from src.cli.parser import parse_arguments
     from src.core.formatter import MarkdownFormatter
     from src.utils.logger import setup_logger
+    from src.utils.performance_monitor import generate_performance_report
 
 
 def main() -> None:
@@ -135,6 +137,14 @@ def main() -> None:
             content = sys.stdin.read()
             formatted_content = formatter.format_content(content)
             sys.stdout.write(formatted_content)
+
+        # Generate performance report if requested
+        if args.performance_report:
+            output_file = args.performance_output
+            format_type = args.performance_format
+            report_result = generate_performance_report(output_file, format_type)
+            if not args.silent:
+                print(f"\n{report_result}")
 
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")

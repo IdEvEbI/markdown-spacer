@@ -6,10 +6,12 @@
 """
 
 import os
+from typing import Any, Dict
 
 from src.core.chunked_processor import ChunkedFileProcessor
 from src.core.formatter import MarkdownFormatter
 from src.core.streaming_processor import StreamingFileProcessor
+from src.utils.performance_decorator import monitor_file_processing
 
 
 class ProcessingStrategy:
@@ -69,7 +71,8 @@ class SmartFileProcessor:
         else:
             return ProcessingStrategy.STREAMING
 
-    def process_file(self, input_path: str, output_path: str) -> dict:
+    @monitor_file_processing
+    def process_file(self, input_path: str, output_path: str) -> Dict[str, Any]:
         """智能处理文件。
 
         Args:
@@ -143,7 +146,7 @@ class SmartFileProcessor:
         else:
             raise ValueError(f"未知的处理策略: {strategy}")
 
-    def get_processing_info(self, filepath: str) -> dict:
+    def get_processing_info(self, filepath: str) -> Dict[str, Any]:
         """获取文件处理信息。
 
         Args:
@@ -193,7 +196,7 @@ class SmartFileProcessor:
         self.chunked_threshold = chunked_mb
 
 
-def process_markdown_file_smart(input_path: str, output_path: str) -> dict:
+def process_markdown_file_smart(input_path: str, output_path: str) -> Dict[str, Any]:
     """智能处理 Markdown 文件。
 
     Args:
@@ -204,7 +207,8 @@ def process_markdown_file_smart(input_path: str, output_path: str) -> dict:
         处理结果信息字典
     """
     processor = SmartFileProcessor()
-    return processor.process_file(input_path, output_path)
+    result = processor.process_file(input_path, output_path)
+    return result
 
 
 def process_markdown_file_smart_to_string(filepath: str) -> str:
@@ -220,7 +224,7 @@ def process_markdown_file_smart_to_string(filepath: str) -> str:
     return processor.process_file_to_string(filepath)
 
 
-def get_file_processing_info(filepath: str) -> dict:
+def get_file_processing_info(filepath: str) -> Dict[str, Any]:
     """获取文件处理信息。
 
     Args:
