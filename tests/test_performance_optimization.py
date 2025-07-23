@@ -118,8 +118,8 @@ class TestFormatterOptimization:
         # 验证大文件处理时间合理（不应该线性增长太多）
         assert large_time < small_time * 200  # 大文件不应该比小文件慢200倍以上
 
-    def test_large_file_streaming_processing(self) -> None:
-        """测试大文件流式处理。"""
+    def test_large_file_processing(self) -> None:
+        """测试大文件处理性能。"""
         # 创建大文件测试
         large_content = "中文English" * 50000  # 约1MB内容
 
