@@ -28,9 +28,9 @@ class SmartFileProcessor:
     根据文件特征自动选择最合适的处理策略。
     """
 
-    def __init__(self) -> None:
+    def __init__(self, bold_quotes: bool = False) -> None:
         """初始化智能处理器。"""
-        self.formatter = MarkdownFormatter()
+        self.formatter = MarkdownFormatter(bold_quotes=bold_quotes)
         self.chunked_processor = ChunkedFileProcessor()
         self.streaming_processor = StreamingFileProcessor()
 
@@ -196,31 +196,37 @@ class SmartFileProcessor:
         self.chunked_threshold = chunked_mb
 
 
-def process_markdown_file_smart(input_path: str, output_path: str) -> Dict[str, Any]:
+def process_markdown_file_smart(
+    input_path: str, output_path: str, bold_quotes: bool = False
+) -> Dict[str, Any]:
     """智能处理 Markdown 文件。
 
     Args:
         input_path: 输入文件路径
         output_path: 输出文件路径
+        bold_quotes: 是否将中文引号内容加粗
 
     Returns:
         处理结果信息字典
     """
-    processor = SmartFileProcessor()
+    processor = SmartFileProcessor(bold_quotes=bold_quotes)
     result: Dict[str, Any] = processor.process_file(input_path, output_path)
     return result
 
 
-def process_markdown_file_smart_to_string(filepath: str) -> str:
+def process_markdown_file_smart_to_string(
+    filepath: str, bold_quotes: bool = False
+) -> str:
     """智能处理 Markdown 文件并返回字符串。
 
     Args:
         filepath: 文件路径
+        bold_quotes: 是否将中文引号内容加粗
 
     Returns:
         处理后的文件内容
     """
-    processor = SmartFileProcessor()
+    processor = SmartFileProcessor(bold_quotes=bold_quotes)
     return processor.process_file_to_string(filepath)
 
 

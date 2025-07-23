@@ -6,6 +6,7 @@
 """
 
 import json
+import os
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -231,6 +232,49 @@ class PerformanceMonitor:
         self.history.clear()
         logger.info("性能历史记录已清空")
 
+    def load_history_from_file(
+        self,
+        filepath: str = os.path.join(
+            os.path.dirname(__file__), "../../.perf_history.json"
+        ),
+    ) -> None:
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.history = [
+                PerformanceData.from_dict(item) for item in data.get("history", [])
+            ]
+            logger.info(f"性能历史记录已从 {filepath} 加载，共 {len(self.history)} 条记录")
+
+    def append_history_to_file(
+        self,
+        filepath: str = os.path.join(
+            os.path.dirname(__file__), "../../.perf_history.json"
+        ),
+    ) -> None:
+        # 合并历史
+        old_history = []
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            old_history = data.get("history", [])
+        # 只追加新数据
+        new_items = [d.to_dict() for d in self.history]
+        all_history = old_history + new_items
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump({"history": all_history}, f, indent=2, ensure_ascii=False)
+        logger.info(f"性能历史已追加保存到: {filepath}")
+
+    def clear_history_file(
+        self,
+        filepath: str = os.path.join(
+            os.path.dirname(__file__), "../../.perf_history.json"
+        ),
+    ) -> None:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            logger.info(f"性能历史文件 {filepath} 已清空")
+
 
 class PerformanceReporter:
     """性能报告生成器。"""
@@ -346,3 +390,18 @@ def generate_performance_report(
         return f"报告已保存到: {output_file}"
     else:
         return reporter.generate_text_report()
+
+
+# CLI 入口可用的便捷函数
+
+
+def load_performance_history() -> None:
+    _global_monitor.load_history_from_file()
+
+
+def append_performance_history() -> None:
+    _global_monitor.append_history_to_file()
+
+
+def clear_performance_history() -> None:
+    _global_monitor.clear_history_file()

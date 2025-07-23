@@ -23,21 +23,23 @@ if __name__ == "__main__":
 
 try:
     from cli.parser import parse_arguments
-    from core.smart_processor import (
-        process_markdown_file_smart,
-        process_markdown_file_smart_to_string,
-    )
+    from core.smart_processor import process_markdown_file_smart
     from utils.logger import setup_logger
-    from utils.performance_monitor import generate_performance_report
+    from utils.performance_monitor import (
+        append_performance_history,
+        generate_performance_report,
+        load_performance_history,
+    )
 except ImportError:
     # Fallback for when running as module
     from src.cli.parser import parse_arguments
-    from src.core.smart_processor import (
-        process_markdown_file_smart,
-        process_markdown_file_smart_to_string,
-    )
+    from src.core.smart_processor import process_markdown_file_smart
     from src.utils.logger import setup_logger
-    from src.utils.performance_monitor import generate_performance_report
+    from src.utils.performance_monitor import (
+        append_performance_history,
+        generate_performance_report,
+        load_performance_history,
+    )
 
 
 def main() -> None:
@@ -53,6 +55,9 @@ def main() -> None:
     try:
         # Parse command line arguments
         args = parse_arguments()
+
+        # 加载历史性能数据
+        load_performance_history()
 
         # Setup logging
         # silent 模式下只输出错误，否则正常输出
@@ -91,7 +96,9 @@ def main() -> None:
                             open(backup_path, "w", encoding="utf-8") as fdst,
                         ):
                             fdst.write(fsrc.read())
-                    result = process_markdown_file_smart(input_path, output_path)
+                    result = process_markdown_file_smart(
+                        input_path, output_path, bold_quotes=args.bold_quotes
+                    )
                     logger.info(
                         f"处理成功: {args.input}，策略: {result.get('strategy')}，"
                         f"用时: {result.get('execution_time', 'N/A')}"
@@ -113,7 +120,9 @@ def main() -> None:
                                 open(backup_path, "w", encoding="utf-8") as fdst,
                             ):
                                 fdst.write(fsrc.read())
-                        result = process_markdown_file_smart(f, output_path)
+                        result = process_markdown_file_smart(
+                            f, output_path, bold_quotes=args.bold_quotes
+                        )
                         if not result.get("success"):
                             logger.error(f"文件处理失败: {f}, 错误: {result.get('error')}")
                             fail += 1
@@ -134,9 +143,11 @@ def main() -> None:
                 logger.error("未指定输入文件、目录，且无标准输入")
                 raise SystemExit(1)
             content = sys.stdin.read()
-            # 这里直接用 formatter.format_content 可能不采集性能数据，建议用智能处理器
-            # formatted_content = formatter.format_content(content)
-            formatted_content = process_markdown_file_smart_to_string(content)
+            # 修复：stdin 直接用 formatter 处理内容字符串，支持 bold_quotes
+            from core.formatter import MarkdownFormatter
+
+            formatter = MarkdownFormatter(bold_quotes=args.bold_quotes)
+            formatted_content = formatter.format_content(content)
             sys.stdout.write(formatted_content)
 
         # Generate performance report if requested
@@ -146,6 +157,9 @@ def main() -> None:
             report_result = generate_performance_report(output_file, format_type)
             if not args.silent:
                 print(f"\n{report_result}")
+
+        # 追加本次性能数据到历史
+        append_performance_history()
 
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")

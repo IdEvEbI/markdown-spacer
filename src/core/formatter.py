@@ -317,6 +317,10 @@ class MarkdownFormatter:
             formatted,
         )
 
+        # 删除此处简单的 bold_quotes 替换，避免覆盖前面复杂逻辑
+        # if getattr(self, "bold_quotes", False):
+        #     formatted = re.sub(r"“([^”]+)”", r"**\1**", formatted)
+
         return formatted
 
     def _is_protected_content(self, line: str) -> bool:
