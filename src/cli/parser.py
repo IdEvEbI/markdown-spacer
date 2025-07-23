@@ -73,6 +73,22 @@ Examples:
         action="store_true",
         help="Silent mode (suppress normal output, only show errors)",
     )
+    parser.add_argument(
+        "--performance-report",
+        action="store_true",
+        help="Generate performance report",
+    )
+    parser.add_argument(
+        "--performance-output",
+        type=str,
+        help="Performance report output file path",
+    )
+    parser.add_argument(
+        "--performance-format",
+        choices=["text", "json"],
+        default="text",
+        help="Performance report format (default: text)",
+    )
 
     # General options
     parser.add_argument(

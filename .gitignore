@@ -208,3 +208,6 @@ __marimo__/
 
 # .DS_Store
 .DS_Store
+performance_report.json
+.perf_history.json
+performance_report.txt

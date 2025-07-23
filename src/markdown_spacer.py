@@ -23,13 +23,23 @@ if __name__ == "__main__":
 
 try:
     from cli.parser import parse_arguments
-    from core.formatter import MarkdownFormatter
+    from core.smart_processor import process_markdown_file_smart
     from utils.logger import setup_logger
+    from utils.performance_monitor import (
+        append_performance_history,
+        generate_performance_report,
+        load_performance_history,
+    )
 except ImportError:
     # Fallback for when running as module
     from src.cli.parser import parse_arguments
-    from src.core.formatter import MarkdownFormatter
+    from src.core.smart_processor import process_markdown_file_smart
     from src.utils.logger import setup_logger
+    from src.utils.performance_monitor import (
+        append_performance_history,
+        generate_performance_report,
+        load_performance_history,
+    )
 
 
 def main() -> None:
@@ -46,6 +56,9 @@ def main() -> None:
         # Parse command line arguments
         args = parse_arguments()
 
+        # 加载历史性能数据
+        load_performance_history()
+
         # Setup logging
         # silent 模式下只输出错误，否则正常输出
         logger = setup_logger(verbose=False)
@@ -55,18 +68,13 @@ def main() -> None:
             logger.setLevel(logging.ERROR)
 
         # Initialize formatter
-        formatter = MarkdownFormatter(bold_quotes=args.bold_quotes)
+        # formatter = MarkdownFormatter(bold_quotes=args.bold_quotes)
 
         # Process files
         if args.input:
             import os
 
-            from core.file_handler import (
-                find_markdown_files,
-                is_markdown_file,
-                read_markdown_file,
-                write_markdown_file,
-            )
+            from core.file_handler import find_markdown_files, is_markdown_file
 
             input_path = str(args.input)
             logger.debug(f"[调试] 输入路径: {input_path}")
@@ -75,14 +83,12 @@ def main() -> None:
                 f"os.path.isdir: {os.path.isdir(input_path)}"
             )
             if os.path.isfile(input_path):
-                # 单文件处理
+                # 单文件处理（走智能处理器）
                 if not is_markdown_file(input_path):
                     logger.error(f"不是合法的 Markdown 文件: {args.input}")
                     raise SystemExit(1)
                 try:
-                    content = read_markdown_file(input_path)
-                    formatted = formatter.format_content(content)
-                    output_path = args.output if args.output else args.input
+                    output_path = str(args.output) if args.output else input_path
                     if args.backup and os.path.isfile(output_path):
                         backup_path = str(output_path) + ".bak"
                         with (
@@ -90,25 +96,23 @@ def main() -> None:
                             open(backup_path, "w", encoding="utf-8") as fdst,
                         ):
                             fdst.write(fsrc.read())
-                    logger.debug(f"[调试] 单文件处理前内容: {content}")
-                    logger.debug(f"[调试] 单文件处理后内容: {formatted}")
-                    write_markdown_file(str(output_path), formatted)
-                    logger.info(f"处理成功: {args.input}")
+                    result = process_markdown_file_smart(
+                        input_path, output_path, bold_quotes=args.bold_quotes
+                    )
+                    logger.info(
+                        f"处理成功: {args.input}，策略: {result.get('strategy')}，"
+                        f"用时: {result.get('execution_time', 'N/A')}"
+                    )
                 except Exception as e:
                     logger.error(f"处理失败: {args.input}, 错误: {e}")
                     raise SystemExit(1)
             elif os.path.isdir(input_path):
-                # 目录处理
+                # 目录处理（批量智能处理）
                 files = find_markdown_files(input_path, recursive=args.recursive)
                 success, fail = 0, 0
                 for f in files:
                     try:
-                        content = read_markdown_file(f)
-                        formatted = formatter.format_content(content)
-                        if content == formatted:
-                            logger.error(f"文件未发生格式化变更: {f}")
-                            fail += 1
-                            continue
+                        output_path = f
                         if args.backup and os.path.isfile(f):
                             backup_path = f + ".bak"
                             with (
@@ -116,8 +120,14 @@ def main() -> None:
                                 open(backup_path, "w", encoding="utf-8") as fdst,
                             ):
                                 fdst.write(fsrc.read())
+                        result = process_markdown_file_smart(
+                            f, output_path, bold_quotes=args.bold_quotes
+                        )
+                        if not result.get("success"):
+                            logger.error(f"文件处理失败: {f}, 错误: {result.get('error')}")
+                            fail += 1
+                            continue
                         logger.debug(f"[调试] 写入格式化内容到: {os.path.abspath(f)}")
-                        write_markdown_file(f, formatted)
                         success += 1
                     except Exception as e:
                         logger.error(f"处理失败: {f}, 错误: {e}")
@@ -133,8 +143,23 @@ def main() -> None:
                 logger.error("未指定输入文件、目录，且无标准输入")
                 raise SystemExit(1)
             content = sys.stdin.read()
+            # 修复：stdin 直接用 formatter 处理内容字符串，支持 bold_quotes
+            from core.formatter import MarkdownFormatter
+
+            formatter = MarkdownFormatter(bold_quotes=args.bold_quotes)
             formatted_content = formatter.format_content(content)
             sys.stdout.write(formatted_content)
+
+        # Generate performance report if requested
+        if args.performance_report:
+            output_file = args.performance_output
+            format_type = args.performance_format
+            report_result = generate_performance_report(output_file, format_type)
+            if not args.silent:
+                print(f"\n{report_result}")
+
+        # 追加本次性能数据到历史
+        append_performance_history()
 
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")
