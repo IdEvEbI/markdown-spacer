@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-markdown-spacer - A Python command-line tool for handling spacing between Chinese,
-English, and numbers in Markdown files.
+markdown-spacer - 处理 Markdown 文档中中文、英文、数字间空格的 Python 命令行工具。
+
+本工具可以自动在 Markdown 文档中的中文、英文、数字之间添加或删除空格，
+提升文档的可读性和规范性。
 
 Usage:
     markdown-spacer [OPTIONS] [INPUT]
@@ -31,7 +33,15 @@ except ImportError:
 
 
 def main() -> None:
-    """Main entry point for the markdown-spacer tool."""
+    """markdown-spacer 工具的主入口函数。
+
+    负责解析命令行参数、初始化格式化器、处理文件或目录，
+    支持单文件处理、批量处理、标准输入输出等模式。
+
+    Raises:
+        SystemExit: 参数错误、文件不存在、处理失败时退出程序
+        KeyboardInterrupt: 用户中断时退出程序
+    """
     try:
         # Parse command line arguments
         args = parse_arguments()
@@ -61,7 +71,8 @@ def main() -> None:
             input_path = str(args.input)
             logger.debug(f"[调试] 输入路径: {input_path}")
             logger.debug(
-                f"[调试] os.path.isfile: {os.path.isfile(input_path)}, os.path.isdir: {os.path.isdir(input_path)}"
+                f"[调试] os.path.isfile: {os.path.isfile(input_path)}, "
+                f"os.path.isdir: {os.path.isdir(input_path)}"
             )
             if os.path.isfile(input_path):
                 # 单文件处理

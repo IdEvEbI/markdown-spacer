@@ -1,5 +1,8 @@
 """
-Logging utilities for markdown-spacer.
+markdown-spacer 日志工具模块。
+
+本模块提供日志记录器的配置和管理功能，
+支持不同级别的日志输出和格式化。
 """
 
 import logging
@@ -7,13 +10,17 @@ from typing import Optional
 
 
 def setup_logger(verbose: bool = False) -> logging.Logger:
-    """Setup logger for markdown-spacer.
+    """设置 markdown-spacer 的日志记录器。
 
     Args:
-        verbose: Whether to enable verbose logging
+        verbose: 是否启用详细日志输出
 
     Returns:
-        Configured logger instance
+        配置好的日志记录器实例
+
+    Note:
+        如果日志记录器已经存在处理器，则直接返回现有实例，
+        避免重复添加处理器。
     """
     logger = logging.getLogger("markdown-spacer")
 
@@ -45,13 +52,17 @@ def setup_logger(verbose: bool = False) -> logging.Logger:
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """Get logger instance.
+    """获取日志记录器实例。
 
     Args:
-        name: Logger name (optional)
+        name: 日志记录器名称（可选）
 
     Returns:
-        Logger instance
+        日志记录器实例
+
+    Note:
+        如果不指定名称，返回默认的 "markdown-spacer" 记录器。
+        如果指定名称，返回 "markdown-spacer.{name}" 格式的记录器。
     """
     if name:
         return logging.getLogger(f"markdown-spacer.{name}")
