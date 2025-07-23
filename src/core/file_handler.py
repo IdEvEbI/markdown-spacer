@@ -3,10 +3,18 @@ markdown-spacer 文件处理模块。
 
 本模块负责 Markdown 文件的识别、读取、写入和批量处理，
 包括文件类型验证、内容合法性检查、备份功能等。
+支持智能处理策略，根据文件大小自动选择最优处理方式。
 """
 
 import os
 from typing import Dict, List
+
+from src.core.smart_processor import (
+    SmartFileProcessor,
+    get_file_processing_info,
+    process_markdown_file_smart,
+    process_markdown_file_smart_to_string,
+)
 
 
 def is_markdown_file(filename: str) -> bool:
@@ -165,3 +173,111 @@ def write_markdown_files(file_contents: Dict[str, str], backup: bool = False) ->
             write_markdown_file(path, content)
         except Exception:
             pass  # 跳过失败文件
+
+
+def process_markdown_file_smart_handler(input_path: str, output_path: str) -> Dict:
+    """智能处理 Markdown 文件（文件处理模块接口）。
+
+    Args:
+        input_path: 输入文件路径
+        output_path: 输出文件路径
+
+    Returns:
+        处理结果信息字典，包含策略、文件大小、成功状态等
+
+    Note:
+        此函数是智能处理器的文件处理模块接口，根据文件大小自动选择处理策略。
+    """
+    return process_markdown_file_smart(input_path, output_path)
+
+
+def process_markdown_file_smart_to_string_handler(filepath: str) -> str:
+    """智能处理 Markdown 文件并返回字符串（文件处理模块接口）。
+
+    Args:
+        filepath: 文件路径
+
+    Returns:
+        处理后的文件内容
+
+    Note:
+        此函数是智能处理器的文件处理模块接口，根据文件大小自动选择处理策略。
+    """
+    return process_markdown_file_smart_to_string(filepath)
+
+
+def get_file_processing_info_handler(filepath: str) -> Dict:
+    """获取文件处理信息（文件处理模块接口）。
+
+    Args:
+        filepath: 文件路径
+
+    Returns:
+        处理信息字典，包含文件大小、策略、阈值等
+
+    Note:
+        此函数是智能处理器的文件处理模块接口，提供文件处理策略信息。
+    """
+    return get_file_processing_info(filepath)
+
+
+def batch_process_markdown_files_smart(
+    filepaths: List[str], output_dir: str | None = None, backup: bool = False
+) -> Dict[str, Dict]:
+    """批量智能处理多个 Markdown 文件。
+
+    Args:
+        filepaths: 要处理的文件路径列表
+        output_dir: 输出目录，如果为 None 则覆盖原文件
+        backup: 是否在写入前创建备份文件，默认为 False
+
+    Returns:
+        处理结果字典 {文件路径: 处理结果信息}
+
+    Note:
+        此函数使用智能处理策略，根据每个文件的大小自动选择最优处理方式。
+        支持批量备份和输出目录指定。
+    """
+    results = {}
+    processor = SmartFileProcessor()
+
+    for filepath in filepaths:
+        if not is_markdown_file(filepath) or not is_valid_markdown_content(filepath):
+            results[filepath] = {
+                "success": False,
+                "error": "不是有效的 Markdown 文件",
+                "strategy": None,
+                "file_size_mb": 0,
+            }
+            continue
+
+        try:
+            # 确定输出路径
+            if output_dir:
+                filename = os.path.basename(filepath)
+                output_path = os.path.join(output_dir, filename)
+            else:
+                output_path = filepath
+
+            # 智能处理文件
+            result = processor.process_file(filepath, output_path)
+            results[filepath] = result
+
+            # 如果需要备份且处理成功
+            if backup and result["success"] and output_path == filepath:
+                backup_path = filepath + ".bak"
+                with (
+                    open(filepath, "r", encoding="utf-8") as fsrc,
+                    open(backup_path, "w", encoding="utf-8") as fdst,
+                ):
+                    fdst.write(fsrc.read())
+
+        except Exception as e:
+            results[filepath] = {
+                "success": False,
+                "error": str(e),
+                "strategy": None,
+                "file_size_mb": 0,
+            }
+
+    return results
