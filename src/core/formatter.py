@@ -1,5 +1,8 @@
 """
-Core formatting algorithm for markdown-spacer.
+markdown-spacer 核心格式化算法模块。
+
+本模块实现了 Markdown 文档中英文、数字间空格处理的核心算法，
+包括正则表达式规则定义、内容格式化处理、特殊内容保护等功能。
 """
 
 import logging
@@ -8,7 +11,17 @@ from typing import Dict, List, Optional, Pattern
 
 
 class MarkdownFormatter:
-    """Core formatter for handling spacing in Markdown content."""
+    """Markdown 内容空格处理核心格式化器。
+
+    负责处理 Markdown 文档中中文、英文、数字之间的空格问题，
+    支持特殊内容保护、自定义规则扩展等功能。
+
+    Attributes:
+        bold_quotes: 是否将中文双引号内容加粗
+        _patterns: 编译好的正则表达式模式字典
+        _custom_rules: 自定义正则表达式规则列表
+        debug: 是否启用调试日志
+    """
 
     def __init__(
         self,
@@ -16,13 +29,13 @@ class MarkdownFormatter:
         custom_rules: Optional[List[Dict[str, Pattern[str]]]] = None,
         debug: bool = False,
     ) -> None:
-        """Initialize the formatter.
+        """初始化格式化器。
 
         Args:
-            bold_quotes: Whether to make Chinese double quotes content bold
-            custom_rules: Optional list of custom regex rules to apply.
-                Each rule: {"name": str, "pattern": Pattern, "repl": str}
-            debug: Whether to enable debug logging
+            bold_quotes: 是否将中文双引号内容加粗
+            custom_rules: 可选的自定义正则表达式规则列表。
+                每个规则格式：{"name": str, "pattern": Pattern, "repl": str}
+            debug: 是否启用调试日志
         """
         self.bold_quotes = bold_quotes
         self._patterns = self._create_patterns()
@@ -32,10 +45,10 @@ class MarkdownFormatter:
             logging.basicConfig(level=logging.DEBUG)
 
     def _create_patterns(self) -> Dict[str, re.Pattern]:
-        """Create regex patterns for formatting rules.
+        """创建格式化规则的正则表达式模式。
 
         Returns:
-            Dictionary of compiled regex patterns
+            编译好的正则表达式模式字典
         """
         return {
             # 中文与英文之间添加空格
@@ -88,13 +101,13 @@ class MarkdownFormatter:
         }
 
     def format_content(self, content: str) -> str:
-        """Format the content by adding appropriate spacing.
+        """格式化内容，添加适当的空格。
 
         Args:
-            content: The content to format
+            content: 要格式化的内容
 
         Returns:
-            Formatted content
+            格式化后的内容
         """
         lines = content.split("\n")
         formatted_lines = []
@@ -129,13 +142,13 @@ class MarkdownFormatter:
         return "\n".join(formatted_lines)
 
     def _format_line(self, line: str) -> str:
-        """Format a single line of content.
+        """格式化单行内容。
 
         Args:
-            line: The line to format
+            line: 要格式化的行
 
         Returns:
-            Formatted line
+            格式化后的行
         """
         if self._is_protected_content(line):
             if self.debug:
@@ -292,13 +305,13 @@ class MarkdownFormatter:
         return formatted
 
     def _is_protected_content(self, line: str) -> bool:
-        """Check if line contains protected content that should not be formatted.
+        """检查行是否包含不应格式化的保护内容。
 
         Args:
-            line: The line to check
+            line: 要检查的行
 
         Returns:
-            True if line contains protected content
+            如果行包含保护内容则返回 True
         """
         # 行内代码
         if line.strip().startswith("`"):

@@ -1,5 +1,7 @@
 """
-Command line argument parser for markdown-spacer.
+markdown-spacer 命令行参数解析模块。
+
+本模块负责解析和处理命令行参数，提供用户友好的参数验证和帮助信息。
 """
 
 import argparse
@@ -8,7 +10,18 @@ from pathlib import Path
 
 
 def parse_arguments() -> argparse.Namespace:
-    """Parse command line arguments."""
+    """解析命令行参数。
+
+    Returns:
+        解析后的参数命名空间对象
+
+    Raises:
+        SystemExit: 参数错误或用户请求帮助/版本信息时退出程序
+
+    Note:
+        支持位置参数和标志参数两种输入方式，
+        提供详细的帮助信息和用法示例。
+    """
     parser = argparse.ArgumentParser(
         description="A Python command-line tool for handling spacing between Chinese, "
         "English, and numbers in Markdown files",
