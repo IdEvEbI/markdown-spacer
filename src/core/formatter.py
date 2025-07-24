@@ -367,8 +367,10 @@ class MarkdownFormatter:
         # 英文连字符修复
         text = self._patterns["english_hyphen"].sub(r"\1-\2", text)
 
-        # 去除末尾空格
-        text = text.rstrip()
+        # 只移除工具名末尾的空格，如 "black " -> "black"
+        # 但不影响其他情况下的末尾空格
+        # 使用更精确的匹配，只匹配单词后跟空格结尾的情况
+        text = re.sub(r"([a-zA-Z0-9]+) $", r"\1", text)
 
         return text
 
