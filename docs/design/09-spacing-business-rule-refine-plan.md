@@ -385,3 +385,88 @@ python scripts/debug/debug_formatter.py
 - 在开发新功能时，先使用调试工具验证
 - 调试工具通过后，再运行完整测试套件
 - 可以修改调试工具中的测试用例来验证特定场景
+
+## 12. 开发约定
+
+### 12.1 身份确认
+
+- **开发前**：明确当前身份（如 Python 高级开发工程师小克）
+- **职责明确**：确认当前任务和开发范围
+- **协作模式**：与刘凡的协作约定和确认机制
+
+### 12.2 核心文件
+
+- **核心代码**：`src/core/formatter.py` - 主要业务逻辑实现
+- **测试代码**：`tests/test_formatter.py` - 单元测试用例
+- **调试工具**：`scripts/debug/debug_formatter.py` - 快速调试验证
+- **设计文档**：`docs/design/09-spacing-business-rule-refine-plan.md` - 业务规则和开发计划
+
+### 12.3 开发策略
+
+- **小步迭代**：每个业务规则独立开发，完成后立即提交
+- **测试驱动**：先阅读测试用例，与业务规则核对，再开始开发
+- **渐进式开发**：避免大规模重构，保持接口兼容性
+- **提交粒度**：每个业务规则开发完成后提交一次
+
+### 12.4 调试策略
+
+- **优先使用调试工具**：用例没跑通时，优先使用 `scripts/debug/debug_formatter.py`
+- **增加调试输出**：在 `formatter.py` 的 `content_spacing_fix` 函数中增加 `print(f"[DEBUG]` 语句
+- **定点修复**：通过调试输出捕捉具体哪个正则没有生效，避免"猜测"调试
+- **提高效率**：有效捕捉问题，定点修复，避免误伤其他功能
+- **统一清理**：所有业务规则开发完毕后，再统一删除所有调试 print 语句
+
+### 12.5 环境准备
+
+- **虚拟环境激活**：`source venv/bin/activate`
+- **依赖检查**：确保所有开发依赖已安装
+- **代码质量工具**：确保 flake8、black、mypy 等工具可用
+
+### 12.6 确认机制
+
+- **每步确认**：每做完一步都需要确认后，再继续
+- **及时沟通**：遇到问题及时沟通对齐，避免方向偏差
+- **质量保证**：每个提交前确保代码质量和测试通过
+
+### 12.7 开发流程
+
+```bash
+# 1. 激活虚拟环境
+source venv/bin/activate
+
+# 2. 阅读测试用例，核对业务规则
+# 查看 tests/test_formatter.py 中的相关测试用例
+# 核对 docs/design/09-spacing-business-rule-refine-plan.md 中的业务规则
+
+# 3. 小步开发，使用调试工具验证
+python scripts/debug/debug_formatter.py
+
+# 4. 开发完成立即提交
+git add src/core/formatter.py
+git commit -m "feat(formatter): 实现XXX业务规则"
+
+# 5. 确认后再继续下一步
+```
+
+### 12.8 调试代码示例
+
+```python
+# 在 content_spacing_fix 函数中添加调试输出
+def content_spacing_fix(self, text: str) -> str:
+    print(f"[DEBUG] 输入文本: {text}")
+    
+    # 应用正则规则
+    for rule_name, pattern in self.patterns.items():
+        if pattern.search(text):
+            print(f"[DEBUG] 规则 {rule_name} 匹配成功")
+            text = pattern.sub(self.replacements[rule_name], text)
+            print(f"[DEBUG] 应用规则后: {text}")
+    
+    return text
+```
+
+### 12.9 版本历史
+
+| 版本 | 日期 | 变更内容 | 负责人 |
+| ---- | ---- | -------- | ------ |
+| v1.1 | 2025-07-24 | 添加开发约定章节，明确开发流程和调试策略 | 刘凡 & 小克 |
