@@ -36,10 +36,9 @@ class TestMarkdownFormatter:
         """测试正则表达式模式编译。"""
         patterns = MarkdownFormatter._get_patterns()
         assert isinstance(patterns, dict)
-        assert "chinese_english" in patterns
-        assert "english_chinese" in patterns
-        assert "chinese_number" in patterns
-        assert "number_chinese" in patterns
+        assert "basic_spacing" in patterns  # 合并后的基础空格处理正则
+        assert "math_symbols" in patterns
+        assert "minus_symbol" in patterns
 
     def test_cached_patterns(self) -> None:
         """测试正则表达式缓存机制。"""

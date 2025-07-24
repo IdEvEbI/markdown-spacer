@@ -72,13 +72,12 @@ class MarkdownFormatter:
             编译好的正则表达式模式字典
         """
         return {
-            # 基础空格处理规则
-            "chinese_english": re.compile(r"([\u4e00-\u9fa5])([a-zA-Z])"),
-            "english_chinese": re.compile(r"([a-zA-Z])([\u4e00-\u9fa5])"),
-            "chinese_number": re.compile(r"([\u4e00-\u9fa5])(\d)"),
-            "number_chinese": re.compile(r"(\d)([\u4e00-\u9fa5])"),
-            "number_english": re.compile(r"(\d)([a-zA-Z])(?!\s*[>=<≤≥＝≠])"),
-            "english_number": re.compile(r"([a-zA-Z])(\d)"),
+            # 基础空格处理规则 - 合并优化
+            "basic_spacing": re.compile(
+                r"([\u4e00-\u9fa5])([a-zA-Z])|([a-zA-Z])([\u4e00-\u9fa5])|"
+                r"([\u4e00-\u9fa5])(\d)|(\d)([\u4e00-\u9fa5])|"
+                r"(\d)([a-zA-Z])(?!\s*[>=<≤≥＝≠])|([a-zA-Z])(\d)"
+            ),
             # 数学符号空格处理规则
             "math_symbols": re.compile(
                 r"([\u4e00-\u9fa5a-zA-Z0-9])([+/*=<>])([\u4e00-\u9fa5a-zA-Z0-9])"
@@ -133,6 +132,8 @@ class MarkdownFormatter:
             "date_format_short": re.compile(r"(\d{1,2}) 月 (\d{1,2}) 日"),
             # 中文双引号加粗规则
             "chinese_quotes_bold": re.compile(r'"([^"]*)"'),
+            # 多空格合并规则
+            "multiple_spaces": re.compile(r" +"),
         }
 
     def format_content(self, content: str) -> str:
@@ -261,61 +262,85 @@ class MarkdownFormatter:
             处理后的文本
         """
         # 调试日志 - 仅在debug模式下输出
-        self.logger.debug(f"开始处理: '{text}'")
+        if self.debug:
+            self.logger.debug(f"开始处理: '{text}'")
 
         # 特殊内容保护：先保存特殊内容，用占位符替换
         protected_content: Dict[str, str] = {}
         text = self._protect_special_content(text, protected_content)
-        self.logger.debug(f"特殊内容保护后: '{text}'")
+        if self.debug:
+            self.logger.debug(f"特殊内容保护后: '{text}'")
 
-        # 基础空格处理
-        text = self._patterns["chinese_english"].sub(r"\1 \2", text)
-        text = self._patterns["english_chinese"].sub(r"\1 \2", text)
-        text = self._patterns["chinese_number"].sub(r"\1 \2", text)
-        text = self._patterns["number_chinese"].sub(r"\1 \2", text)
-        text = self._patterns["number_english"].sub(r"\1 \2", text)
-        text = self._patterns["english_number"].sub(r"\1 \2", text)
-        self.logger.debug(f"基础空格处理后: '{text}'")
+        # 基础空格处理 - 分步处理以确保正确性
+        # 中英文
+        text = re.sub(r"([\u4e00-\u9fa5])([a-zA-Z])", r"\1 \2", text)
+        # 英中文
+        text = re.sub(r"([a-zA-Z])([\u4e00-\u9fa5])", r"\1 \2", text)
+        # 中数字
+        text = re.sub(r"([\u4e00-\u9fa5])(\d)", r"\1 \2", text)
+        # 数字中
+        text = re.sub(r"(\d)([\u4e00-\u9fa5])", r"\1 \2", text)
+        # 数字英（排除比较符号）
+        text = re.sub(r"(\d)([a-zA-Z])(?!\s*[>=<≤≥＝≠])", r"\1 \2", text)
+        # 英数字
+        text = re.sub(r"([a-zA-Z])(\d)", r"\1 \2", text)
+        if self.debug:
+            self.logger.debug(f"基础空格处理后: '{text}'")
 
-        # 数学符号空格处理
-        text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
-        self.logger.debug(f"数学符号处理后: '{text}'")
+        # 数学符号空格处理 - 条件执行优化
+        if any(char in text for char in "+/*=<>"):
+            text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
+            if self.debug:
+                self.logger.debug(f"数学符号处理后: '{text}'")
 
-        # 减号符号空格处理（排除版本号中的连字符）
-        text = self._patterns["minus_symbol"].sub(r"\1 \2 \3", text)
-        self.logger.debug(f"减号符号处理后: '{text}'")
+        # 减号符号空格处理（排除版本号中的连字符）- 条件执行优化
+        if "-" in text:
+            text = self._patterns["minus_symbol"].sub(r"\1 \2 \3", text)
+            if self.debug:
+                self.logger.debug(f"减号符号处理后: '{text}'")
 
-        # 标点符号空格处理
-        text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
-        text = self._patterns["rparen_after"].sub(r"\1 \2", text)
-        self.logger.debug(f"标点符号处理后: '{text}'")
+        # 标点符号空格处理 - 条件执行优化
+        if any(char in text for char in ",.!?;:"):
+            text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
+        if ")" in text:
+            text = self._patterns["rparen_after"].sub(r"\1 \2", text)
+        if self.debug:
+            self.logger.debug(f"标点符号处理后: '{text}'")
 
-        # 中文斜杠分隔空格处理
-        text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
-        self.logger.debug(f"斜杠分隔处理后: '{text}'")
+        # 中文斜杠分隔空格处理 - 条件执行优化
+        if "/" in text:
+            text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
+            if self.debug:
+                self.logger.debug(f"斜杠分隔处理后: '{text}'")
 
-        # 编号与中文空格处理
-        text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
-        self.logger.debug(f"编号中文处理后: '{text}'")
+        # 编号与中文空格处理 - 条件执行优化
+        if any(char.isdigit() for char in text):
+            text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
+            if self.debug:
+                self.logger.debug(f"编号中文处理后: '{text}'")
 
-        # 合并多个连续空格
-        text = re.sub(r" +", " ", text)
-        self.logger.debug(f"多空格合并后: '{text}'")
+        # 合并多个连续空格 - 使用预编译的正则表达式
+        text = self._patterns["multiple_spaces"].sub(" ", text)
+        if self.debug:
+            self.logger.debug(f"多空格合并后: '{text}'")
 
         # 业务规则修复（删除不应该存在的空格）- 最后进行
         text = self._apply_business_rules(text)
-        self.logger.debug(f"业务规则修复后: '{text}'")
+        if self.debug:
+            self.logger.debug(f"业务规则修复后: '{text}'")
 
         # 中文双引号加粗（可选功能）
         if self.bold_quotes:
             text = self._fix_chinese_quotes_bold(text)
-            self.logger.debug(f"中文双引号加粗后: '{text}'")
+            if self.debug:
+                self.logger.debug(f"中文双引号加粗后: '{text}'")
 
         # 恢复特殊内容
         text = self._restore_special_content(text, protected_content)
-        self.logger.debug(f"恢复特殊内容后: '{text}'")
-        self.logger.debug(f"最终结果: '{text}'")
-        self.logger.debug("-" * 50)
+        if self.debug:
+            self.logger.debug(f"恢复特殊内容后: '{text}'")
+            self.logger.debug(f"最终结果: '{text}'")
+            self.logger.debug("-" * 50)
 
         return text
 
