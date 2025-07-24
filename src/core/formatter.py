@@ -137,90 +137,72 @@ class MarkdownFormatter:
 
     def format_content(self, content: str) -> str:
         """格式化内容，添加适当的空格。"""
-        # 1. 保护特殊内容
+        # 1. 批量保护特殊内容
         protected_content: Dict[str, str] = {}
         content = self._protect_special_content(content, protected_content)
         # 2. 按行处理，收集到列表
         lines = content.splitlines(keepends=True)
-        processed_lines = [self.content_spacing_fix(line) for line in lines]
+        processed_lines = [self._format_line(line) for line in lines]
         content = "".join(processed_lines)
         # 3. 业务规则修复
         content = self._apply_business_rules(content)
         # 4. 中文双引号加粗（可选）
         if self.bold_quotes:
             content = self._fix_chinese_quotes_bold(content)
-        # 5. 恢复特殊内容
+        # 5. 批量还原特殊内容
         content = self._restore_special_content(content, protected_content)
         return content
 
     def _format_line(self, line: str) -> str:
-        """格式化单行内容（重构版本）。
-
-        使用分层处理架构：
-        1. 识别行类型
-        2. 提取结构标记和内容块
-        3. 对内容块进行空格处理
-        4. 重新组装行
-
-        Args:
-            line: 要格式化的行
-
-        Returns:
-            格式化后的行
-        """
-        # 检查是否为受保护的内容（代码块、数学公式等）
-        if self._is_protected_content(line):
-            return line
-
-        # 检查是否为水平分割线
-        if self._is_horizontal_rule_line(line):
-            return line
-
-        # 标题行处理
+        """格式化单行内容，分离结构标记与内容块，对内容块递归做 spacing。"""
+        # 标题行
         if self._is_title_line(line):
             prefix, content = self._extract_title_content(line)
-            processed_content = self.content_spacing_fix(content)
-            return prefix + processed_content
-
-        # 列表行处理
+            return prefix + self.content_spacing_fix(content)
+        # 列表行（无序/有序/缩进）
         if self._is_list_line(line):
             prefix, content = self._extract_list_content(line)
-            processed_content = self.content_spacing_fix(content)
-            return prefix + processed_content
-
-        # 引用行处理
+            return prefix + self.content_spacing_fix(content)
+        # 引用行
         if self._is_quote_line(line):
             prefix, content = self._extract_quote_content(line)
-            processed_content = self.content_spacing_fix(content)
-            return prefix + processed_content
-
-        # 表格行处理
+            return prefix + self.content_spacing_fix(content)
+        # 表格行
         if self._is_table_line(line):
-            # 检查是否为表格分隔行
-            if re.search(r"\|[\s]*[-:]+\s*\|", line.strip()):
-                # 表格分隔行，保持原样
-                return line
-
-            # 普通表格行，处理单元格内容
-            cells = self._extract_table_cells(line)
-            processed_cells = []
-            for cell in cells:
-                cell_content = cell.strip()
-                if cell_content:
-                    processed_content = self.content_spacing_fix(cell_content)
-                    processed_cells.append(" " + processed_content + " ")
+            # 检查是否为表格分隔行（如 | --- | --- |）
+            if re.match(
+                r"^\s*\|?\s*:?[-]+:?(\|\s*:?[-]+:?\s*)+\|?\s*$",
+                line,
+            ):
+                return line  # 分隔线保持原样
+            # 普通表格行，保留 | 分隔和前后空格，仅处理单元格内容
+            raw_cells = re.split(r"(\|)", line)
+            processed = []
+            for cell in raw_cells:
+                if cell == "|":
+                    processed.append(cell)
                 else:
-                    processed_cells.append(" ")
-
-            return "|" + "|".join(processed_cells) + "|"
-
-        # 普通文本行处理
+                    # 保留原有前后空格，仅对内容做 spacing
+                    leading = len(cell) - len(cell.lstrip(" "))
+                    trailing = len(cell) - len(cell.rstrip(" "))
+                    content = cell.strip(" ")
+                    if content:
+                        content = self.content_spacing_fix(content)
+                    processed.append(" " * leading + content + " " * trailing)
+            return "".join(processed)
+        # 代码块、数学块、水平线等特殊结构直接返回
+        if (
+            self._is_code_block_line(line)
+            or self._is_math_block_line(line)
+            or self._is_horizontal_rule_line(line)
+        ):
+            return line
+        # 普通行
         return self.content_spacing_fix(line)
 
     def content_spacing_fix(self, text: str) -> str:
         """内容块空格修复（基础实现）。"""
         # 文件名格式保护（如 requirements.txt、setup.py、pyproject.toml 等）
-        # 用特殊占位符保护，处理后还原
         protected_filenames: dict[str, str] = {}
 
         def protect_filename(m: re.Match[str]) -> str:
@@ -228,18 +210,18 @@ class MarkdownFormatter:
             protected_filenames[key] = m.group(0)
             return key
 
-        # 常见文件名格式
         text = re.sub(
             r"\b\w+\.(txt|py|toml|yaml|yml|json|md|markdown)\b", protect_filename, text
         )
 
-        # 基础空格处理
-        text = re.sub(r"([\u4e00-\u9fa5])([a-zA-Z])", r"\1 \2", text)
-        text = re.sub(r"([a-zA-Z])([\u4e00-\u9fa5])", r"\1 \2", text)
-        text = re.sub(r"([\u4e00-\u9fa5])(\d)", r"\1 \2", text)
-        text = re.sub(r"(\d)([\u4e00-\u9fa5])", r"\1 \2", text)
-        text = re.sub(r"(\d)([a-zA-Z])(?!\s*[>=<≤≥＝≠])", r"\1 \2", text)
-        text = re.sub(r"([a-zA-Z])(\d)", r"\1 \2", text)
+        # 基础空格处理（分步 re.sub）
+        text = re.sub(r"([\u4e00-\u9fa5])([a-zA-Z])", r"\1 \2", text)  # zh_en
+        text = re.sub(r"([a-zA-Z])([\u4e00-\u9fa5])", r"\1 \2", text)  # en_zh
+        text = re.sub(r"([\u4e00-\u9fa5])(\d)", r"\1 \2", text)  # zh_num
+        text = re.sub(r"(\d)([\u4e00-\u9fa5])", r"\1 \2", text)  # num_zh
+        text = re.sub(r"([a-zA-Z])(\d)", r"\1 \2", text)  # en_num
+        text = re.sub(r"(\d)([a-zA-Z])", r"\1 \2", text)  # num_en
+
         # 数学符号空格处理
         if any(char in text for char in "+/*=<>"):
             text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
@@ -258,7 +240,8 @@ class MarkdownFormatter:
         if any(char.isdigit() for char in text):
             text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
         # 合并多个连续空格
-        text = self._patterns["multiple_spaces"].sub(" ", text)
+        if " " in text:
+            text = self._patterns["multiple_spaces"].sub(" ", text)
         # 业务规则修复
         text = self._apply_business_rules(text)
         # 恢复文件名格式
@@ -688,25 +671,22 @@ class MarkdownFormatter:
         return stripped.startswith("#") and not stripped.startswith("```")
 
     def _is_list_line(self, line: str) -> bool:
-        """检查是否为列表行。
+        """判断是否为列表行，包括所有缩进层级、嵌套、任务列表。"""
+        # 支持任意空格缩进+[-*+]/数字.，任务列表
+        return bool(re.match(r"^\s*(?:[-*+]|\d+\.)\s*(\[[ xX]\])?\s+", line))
 
-        Args:
-            line: 要检查的行
-
-        Returns:
-            如果是列表行返回True，否则返回False
-        """
-        stripped = line.strip()
-        # 无序列表：-、*、+
-        if stripped.startswith(("-", "*", "+")):
-            return True
-        # 有序列表：数字. 格式
-        if re.match(r"^\d+\.\s", stripped):
-            return True
-        # 任务列表：[ ] 或 [x]
-        if re.match(r"^[-*+]\s*\[[ xX]\]", stripped):
-            return True
-        return False
+    def _extract_list_content(self, line: str) -> tuple[str, str]:
+        """提取所有缩进层级的列表行结构标记和内容。"""
+        # 任务列表
+        m = re.match(r"^(\s*[-*+]|\d+\.)\s*(\[[ xX]\])?\s+(.*)$", line)
+        if m:
+            prefix = m.group(1)
+            if m.group(2):
+                prefix += m.group(2) + " "
+            else:
+                prefix += " "
+            return prefix, m.group(3)
+        return "", line
 
     def _is_quote_line(self, line: str) -> bool:
         """检查是否为引用行。
@@ -719,6 +699,13 @@ class MarkdownFormatter:
         """
         stripped = line.strip()
         return stripped.startswith(">")
+
+    def _extract_quote_content(self, line: str) -> tuple[str, str]:
+        """提取引用行的前缀和内容，支持多级嵌套。"""
+        m = re.match(r"^(\s*>+\s*)(.*)$", line)
+        if m:
+            return m.group(1), m.group(2)
+        return "", line
 
     def _is_table_line(self, line: str) -> bool:
         """检查是否为表格行。
@@ -803,68 +790,6 @@ class MarkdownFormatter:
         content = stripped[content_start:].lstrip()
 
         return prefix, content
-
-    def _extract_list_content(self, line: str) -> tuple[str, str]:
-        """提取列表行的前缀和内容。
-
-        Args:
-            line: 列表行
-
-        Returns:
-            元组 (前缀, 内容)，前缀包含列表标记和空格，内容为列表项文本
-        """
-        stripped = line.strip()
-
-        # 处理有序列表：数字. 格式
-        if re.match(r"^\d+\.\s", stripped):
-            match = re.match(r"^(\d+\.\s+)(.*)", stripped)
-            if match:
-                return match.group(1), match.group(2)
-
-        # 处理任务列表：[-*+] [ ] 格式
-        if re.match(r"^[-*+]\s*\[[ xX]\]", stripped):
-            match = re.match(r"^([-*+]\s*\[[ xX]\]\s+)(.*)", stripped)
-            if match:
-                return match.group(1), match.group(2)
-
-        # 处理普通无序列表：[-*+] 格式
-        if stripped.startswith(("-", "*", "+")):
-            # 找到第一个空格后的内容
-            space_pos = stripped.find(" ")
-            if space_pos != -1:
-                prefix = stripped[: space_pos + 1]
-                content = stripped[space_pos + 1 :]
-                return prefix, content
-
-        # 默认情况
-        return "", stripped
-
-    def _extract_quote_content(self, line: str) -> tuple[str, str]:
-        """提取引用行的前缀和内容。
-
-        Args:
-            line: 引用行
-
-        Returns:
-            元组 (前缀, 内容)，前缀包含 > 符号和空格，内容为引用文本
-        """
-        stripped = line.strip()
-        if stripped.startswith(">"):
-            # 找到第一个非 > 字符的位置
-            content_start = 0
-            for i, char in enumerate(stripped):
-                if char != ">":
-                    content_start = i
-                    break
-
-            # 提取前缀（包含 > 符号和后续空格）
-            prefix = stripped[:content_start] + " "
-            # 提取内容（去除前导空格）
-            content = stripped[content_start:].lstrip()
-
-            return prefix, content
-
-        return "", stripped
 
     def _extract_table_cells(self, line: str) -> list[str]:
         """提取表格行的单元格内容。
