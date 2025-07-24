@@ -424,7 +424,8 @@ $$
         # === 应跳过：嵌套结构，整段不处理 ===
         assert fmt.content_spacing_fix("“外层“内层”内容”") == "“外层“内层”内容”"
         assert fmt.content_spacing_fix("“这是“重点”内容”") == "“这是“重点”内容”"
-        assert fmt.content_spacing_fix("“外层”内层“内容”外层") == "“外层”内层“内容”外层"
+        # 并列多对应全部加粗
+        assert fmt.content_spacing_fix("“外层”内层“内容”外层") == "**外层** 内层 **内容** 外层"
 
         # === 不处理：单侧/不成对引号、边界情况 ===
         assert fmt.content_spacing_fix("开始“结束") == "开始“结束"

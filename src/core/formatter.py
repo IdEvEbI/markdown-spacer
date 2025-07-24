@@ -7,7 +7,6 @@ markdown-spacer 核心格式化算法模块。
 
 import logging
 import re
-from re import Match
 from typing import Dict, List, Optional, Pattern
 
 from src.utils.logger import get_logger
@@ -491,46 +490,49 @@ class MarkdownFormatter:
         return text
 
     def _fix_chinese_quotes_bold(self, text: str) -> str:
-        """只加粗最外层的中文双引号内容。
-
-        Args:
-            text: 要修复的文本
-
-        Returns:
-            修复后的文本
         """
-
-        def replace_outer_cn_quotes(match: Match[str]) -> str:
-            content = match.group(1)
-            bold_content = f"**{content}**"
-            prefix = match.start()
-            suffix = match.end()
-            if (
-                prefix > 0
-                and not text[prefix - 1].isspace()
-                and text[prefix - 1] not in "，。！？；："
-            ):
-                bold_content = " " + bold_content
-            if (
-                suffix < len(text)
-                and not text[suffix].isspace()
-                and text[suffix] not in "，。！？；："
-            ):
-                bold_content = bold_content + " "
-            return bold_content
-
-        # 优先并列，嵌套直接跳过
+        只加粗最外层的中文双引号内容：
+        - 成对出现的“内容”加粗为 **内容**，并在加粗内容前后智能补空格
+        - 遇到嵌套结构（如“外层“内层”内容”）整段跳过不处理
+        - 内容为空、全空白、特殊字符等不加粗
+        """
+        # 检查是否有嵌套结构，若有则直接返回原文
         stack = 0
         for c in text:
             if c == "“":
                 stack += 1
                 if stack > 1:
-                    return text  # 有嵌套，直接返回原文
+                    return text  # 嵌套，跳过
             elif c == "”":
                 stack -= 1
+
         # 匹配所有并列的“内容”
-        text = re.sub(r"“([^“”]+)”", replace_outer_cn_quotes, text)
-        return text
+        def repl(match: re.Match[str]) -> str:
+            content = match.group(1)
+            # 跳过内容为空、全空白、全标点等
+            if not content.strip():
+                return f"“{content}”"
+            # 判断前后是否需要补空格
+            start, end = match.start(), match.end()
+            prefix_space = (
+                start > 0
+                and not text[start - 1].isspace()
+                and text[start - 1] not in "，。！？；："
+            )
+            suffix_space = (
+                end < len(text)
+                and not text[end].isspace()
+                and text[end] not in "，。！？；："
+            )
+            bold = f"**{content}**"
+            if prefix_space:
+                bold = " " + bold
+            if suffix_space:
+                bold = bold + " "
+            return bold
+
+        # 只处理最外层并列的“内容”
+        return re.sub(r"“([^“”]+)”", repl, text)
 
     def _protect_special_content(self, text: str, protected_content: dict) -> str:
         """保护特殊内容，用占位符替换。
