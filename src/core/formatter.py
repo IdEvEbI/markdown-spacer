@@ -87,7 +87,9 @@ class MarkdownFormatter:
             ),
             "rparen_after": re.compile(r"(\))([A-Za-z\u4e00-\u9fa5])"),
             # 中文斜杠分隔空格处理规则
-            "chinese_slash": re.compile(r"([\u4e00-\u9fa5])\s*/\s*([\u4e00-\u9fa5])"),
+            "chinese_slash": re.compile(
+                r"([\u4e00-\u9fa5])\s*/\s*([\u4e00-\u9fa5a-zA-Z])"
+            ),
             # 编号与中文空格处理规则
             "number_chinese_priority": re.compile(r"([\u4e00-\u9fa5])(\d+)"),
             # 技术术语修复规则
@@ -97,9 +99,7 @@ class MarkdownFormatter:
             "tool_name": re.compile(r"(flake) (8)"),
             # 文件路径修复规则
             "file_extension": re.compile(r"(\w+) \. ([a-zA-Z0-9]+)"),
-            "path_separator": re.compile(
-                r"(?<![\u4e00-\u9fa5])\s*/\s*(?![\u4e00-\u9fa5])"
-            ),
+            "path_separator": re.compile(r"(?<=\w)\s*/\s*(?=\w)(?=.*\.\w+|\w+\.\w+)"),
             # 比较符号修复规则
             "comparison_symbols": re.compile(
                 r"(>=|<=|!=|==|>|<|＞|＜|≥|≤|＝|≠)\s*([0-9])"
@@ -111,6 +111,9 @@ class MarkdownFormatter:
             "filename_protection": re.compile(
                 r"([\w\-]+\.(txt|py|toml|yaml|yml|json|md|markdown))"
             ),
+            # 日期格式修复规则
+            "date_format": re.compile(r"(\d{4}) 年 (\d{1,2}) 月 (\d{1,2}) 日"),
+            "date_format_short": re.compile(r"(\d{1,2}) 月 (\d{1,2}) 日"),
         }
 
     def format_content(self, content: str) -> str:
@@ -310,6 +313,9 @@ class MarkdownFormatter:
         # 文件路径修复
         text = self._fix_file_paths(text)
 
+        # 日期格式修复
+        text = self._fix_date_format(text)
+
         return text
 
     def _fix_technical_terms(self, text: str) -> str:
@@ -348,6 +354,7 @@ class MarkdownFormatter:
             修复后的文本
         """
         # 路径分隔符修复：src / core / formatter. py -> src/core/formatter. py
+        # 但避免影响中文斜杠分隔：文本 / JSON -> 文本 / JSON
         text = self._patterns["path_separator"].sub("/", text)
 
         # 文件扩展名修复：requirements . txt -> requirements.txt
@@ -372,6 +379,21 @@ class MarkdownFormatter:
         text = self._patterns["comparison_symbols"].sub(r"\1 \2", text)
         # 比较符号修复（处理已经被基础空格处理的情况）：>= 100 GB -> >= 100GB
         text = self._patterns["comparison_symbols_fix"].sub(r"\1 \2\3", text)
+        return text
+
+    def _fix_date_format(self, text: str) -> str:
+        """修复日期格式中的空格问题。
+
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 年份格式修复：2025 年 7 月 24 日 -> 2025年7月24日
+        text = self._patterns["date_format"].sub(r"\1年\2月\3日", text)
+        # 短日期格式修复：7 月 22 日 -> 7月22日
+        text = self._patterns["date_format_short"].sub(r"\1月\2日", text)
         return text
 
     def _protect_special_content(self, text: str, protected_content: dict) -> str:

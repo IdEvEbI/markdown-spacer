@@ -336,6 +336,34 @@ def test_file_path_fixes() -> None:
         print()
 
 
+def test_date_and_special_format_fix() -> None:
+    """测试日期和特殊格式修复"""
+    print("=== 日期和特殊格式修复测试 ===")
+    fmt = MarkdownFormatter()
+
+    test_cases = [
+        # 日期格式修复
+        ("2025 年 7 月 24 日", "2025年7月24日"),
+        ("7 月 22 日", "7月22日"),
+        ("2024 年 12 月 31 日", "2024年12月31日"),
+        # 中文斜杠分隔
+        ("文本/JSON", "文本 / JSON"),
+        ("前端/后端", "前端 / 后端"),
+        ("开发/测试", "开发 / 测试"),
+        # 编号与中文（已实现，验证）
+        ("优先级1", "优先级 1"),
+        ("版本2.0", "版本 2.0"),
+    ]
+
+    for input_text, expected in test_cases:
+        result = fmt.content_spacing_fix(input_text)
+        status = "✅" if result == expected else "❌"
+        print(f"{status} 输入: {input_text}")
+        print(f"   期望: {expected}")
+        print(f"   实际: {result}")
+        print()
+
+
 def main() -> None:
     """主函数"""
     print("🚀 markdown-spacer 格式化器调试工具")
@@ -354,6 +382,7 @@ def main() -> None:
     test_regex_debug()
     test_business_rules_direct()  # 添加业务规则直接测试
     test_file_path_fixes()  # 添加文件路径修复测试
+    test_date_and_special_format_fix()  # 添加日期和特殊格式修复测试
 
     print("🎉 调试完成！")
 
