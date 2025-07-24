@@ -95,6 +95,8 @@
 - **数字+单位+加号表达**：如 4GB+、8GB+ 等，可以不加空格，保持原样。
 - **文件名格式保护**：如 requirements.txt、requirements-dev.txt、setup.py、pyproject.toml、.pre-commit-config.yaml 等，无论是否被反引号包裹，不应加空格。建议 formatter 用正则直接匹配和保护常见文件名、路径格式（如 xxx.txt、xxx-xxx.py、.xxx、xxx/xxx.xxx 等）。
 - **工具名与命令名保护**：如 flake8、black、isort、mypy 等工具名、命令名、技术缩写，不应加空格，保持原样。
+- **比较符号与数字/单位间空格**：如 > 10MB、<= 5ms，比较符号（>、<、>=、<=、=、!=、＞、＜、≥、≤、＝、≠）与数字/单位之间应有空格，自动修复 >10MB 为 > 10MB，＞100GB 为 ＞ 100GB。
+- **多个连续空格合并**：文档中出现多个连续空格时，自动合并为一个空格，优先级最高。
 
 ### 特殊内容保护规则
 
