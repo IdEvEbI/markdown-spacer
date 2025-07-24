@@ -364,6 +364,33 @@ def test_date_and_special_format_fix() -> None:
         print()
 
 
+def test_chinese_quotes_bold() -> None:
+    """测试中文双引号加粗功能"""
+    print("=== 中文双引号加粗测试 ===")
+    fmt = MarkdownFormatter(bold_quotes=True)
+
+    test_cases = [
+        # 基本加粗
+        ('他说："你好"', "他说：**你好**"),
+        ('世界"你好"啊', "世界 **你好** 啊"),
+        ('这是"重点"内容', "这是 **重点** 内容"),
+        # 嵌套引号不处理
+        ('"外层"内层"内容"', '"外层"内层"内容"'),
+        ('"这是"重点"内容"', '"这是"重点"内容"'),
+        # 复杂情况
+        ('他说："你好"，然后"再见"', "他说：**你好**，然后 **再见**"),
+        ('"外层"内层"内容"外层', '"外层"内层"内容"外层'),
+    ]
+
+    for input_text, expected in test_cases:
+        result = fmt.content_spacing_fix(input_text)
+        status = "✅" if result == expected else "❌"
+        print(f"{status} 输入: {input_text}")
+        print(f"   期望: {expected}")
+        print(f"   实际: {result}")
+        print()
+
+
 def main() -> None:
     """主函数"""
     print("🚀 markdown-spacer 格式化器调试工具")
@@ -383,6 +410,7 @@ def main() -> None:
     test_business_rules_direct()  # 添加业务规则直接测试
     test_file_path_fixes()  # 添加文件路径修复测试
     test_date_and_special_format_fix()  # 添加日期和特殊格式修复测试
+    test_chinese_quotes_bold()  # 添加中文双引号加粗测试
 
     print("🎉 调试完成！")
 

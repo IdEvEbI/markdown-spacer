@@ -114,6 +114,8 @@ class MarkdownFormatter:
             # 日期格式修复规则
             "date_format": re.compile(r"(\d{4}) 年 (\d{1,2}) 月 (\d{1,2}) 日"),
             "date_format_short": re.compile(r"(\d{1,2}) 月 (\d{1,2}) 日"),
+            # 中文双引号加粗规则
+            "chinese_quotes_bold": re.compile(r'"([^"]*)"'),
         }
 
     def format_content(self, content: str) -> str:
@@ -287,6 +289,11 @@ class MarkdownFormatter:
         text = self._apply_business_rules(text)
         print(f"[DEBUG] 业务规则修复后: '{text}'")
 
+        # 中文双引号加粗（可选功能）
+        if self.bold_quotes:
+            text = self._fix_chinese_quotes_bold(text)
+            print(f"[DEBUG] 中文双引号加粗后: '{text}'")
+
         # 恢复特殊内容
         text = self._restore_special_content(text, protected_content)
         print(f"[DEBUG] 恢复特殊内容后: '{text}'")
@@ -395,6 +402,64 @@ class MarkdownFormatter:
         # 短日期格式修复：7 月 22 日 -> 7月22日
         text = self._patterns["date_format_short"].sub(r"\1月\2日", text)
         return text
+
+    def _fix_chinese_quotes_bold(self, text: str) -> str:
+        """修复中文双引号加粗。
+
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 简单的实现：只处理最外层的引号对
+        # 如果文本以引号开始，说明是嵌套引号，不处理
+        if text.startswith('"'):
+            return text
+
+        # 查找所有引号对，但只处理第一个完整的引号对
+        result = ""
+        i = 0
+        while i < len(text):
+            if text[i] == '"':
+                # 找到开始引号
+                start = i
+                i += 1
+                # 寻找结束引号
+                while i < len(text) and text[i] != '"':
+                    i += 1
+                if i < len(text):
+                    # 找到结束引号
+                    content = text[start + 1 : i]
+                    # 在加粗内容前后添加空格（如果前后不是空格或标点）
+                    bold_content = "**" + content + "**"
+
+                    # 检查前面是否需要空格
+                    if (
+                        start > 0
+                        and not text[start - 1].isspace()
+                        and text[start - 1] not in "，。！？；："
+                    ):
+                        bold_content = " " + bold_content
+
+                    # 检查后面是否需要空格
+                    if (
+                        i + 1 < len(text)
+                        and not text[i + 1].isspace()
+                        and text[i + 1] not in "，。！？；："
+                    ):
+                        bold_content = bold_content + " "
+
+                    result += bold_content
+                    i += 1
+                else:
+                    # 没有找到结束引号，保持原样
+                    result += text[start:i]
+            else:
+                result += text[i]
+                i += 1
+
+        return result
 
     def _protect_special_content(self, text: str, protected_content: dict) -> str:
         """保护特殊内容，用占位符替换。
