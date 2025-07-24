@@ -65,123 +65,14 @@ class MarkdownFormatter:
         Returns:
             编译好的正则表达式模式字典
         """
-        ext_pattern = "|".join(
-            [
-                "doc",
-                "docx",
-                "xls",
-                "xlsx",
-                "ppt",
-                "pptx",
-                "csv",
-                "tsv",
-                "ods",
-                "odt",
-                "odp",
-                "xlsm",
-                "xltx",
-                "dotx",
-                "potx",
-                "pptm",
-                "docm",
-                "xlsb",
-                "c",
-                "h",
-                "cpp",
-                "cxx",
-                "cc",
-                "hpp",
-                "hxx",
-                "java",
-                "php",
-                "phtml",
-                "inc",
-                "txt",
-                "md",
-                "markdown",
-                "py",
-                "toml",
-                "ini",
-                "json",
-                "yaml",
-                "yml",
-                "cfg",
-                "conf",
-                "bak",
-                "log",
-                "rst",
-                "sh",
-                "bat",
-                "ps1",
-                "js",
-                "ts",
-                "html",
-                "css",
-                "xml",
-                "lock",
-            ]
-        )
         return {
-            # ===== 保护类规则（优先匹配） =====
-            # 文件名/路径/扩展名保护（如 requirements.txt、setup.py、pyproject.toml、
-            # .pre-commit-config.yaml、office、C/C++/Java/PHP 等）
-            "filename": re.compile(
-                r"(?<![\w`])([\w\-]+\.({}))(?![\w])".format(ext_pattern)
-            ),
-            # 技术缩写/带连字符缩写保护（如 UTF-8、JSON-LD、RFC-2616、ISO-8859-1 等）
-            "tech_abbr": re.compile(r"\b([A-Z]{2,}(?:-[A-Z0-9]+)+)\b"),
-            # 工具名/命令名保护（如 flake8、black、isort、mypy 等）
-            "tool_name": re.compile(
-                r"\b(flake8|black|isort|mypy|pytest|pre-commit|pip|setuptools|"
-                r"tox|coverage|bandit|ruff|pylint|nose2?)\b"
-            ),
-            # 中文与英文之间添加空格
+            # 基础空格处理规则（待实现）
             "chinese_english": re.compile(r"([\u4e00-\u9fa5])([a-zA-Z])"),
-            # 英文与中文之间添加空格
             "english_chinese": re.compile(r"([a-zA-Z])([\u4e00-\u9fa5])"),
-            # 中文与数字之间添加空格
             "chinese_number": re.compile(r"([\u4e00-\u9fa5])(\d)"),
-            # 数字与中文之间添加空格
             "number_chinese": re.compile(r"(\d)([\u4e00-\u9fa5])"),
-            # 数字与英文之间添加空格
             "number_english": re.compile(r"(\d)([a-zA-Z])"),
-            # 英文与数字之间添加空格
             "english_number": re.compile(r"([a-zA-Z])(\d)"),
-            # 数学符号连接，A+B -> A + B，张三-李四 -> 张三 - 李四
-            "math_symbols": re.compile(
-                r"([\u4e00-\u9fa5a-zA-Z0-9])([+\-/*=<>])([\u4e00-\u9fa5a-zA-Z0-9])"
-            ),
-            # 中文双引号内容（可选加粗）
-            "chinese_quotes": re.compile(r"“(.+?)”"),
-            # 中文连字符，张三-李四 -> 张三 - 李四
-            "chinese_hyphen": re.compile(r"([\u4e00-\u9fa5]+)-([\u4e00-\u9fa5]+)"),
-            # 日期（保护，不处理）
-            "date": re.compile(
-                r"("  # 支持多种日期格式
-                r"\d{4}-\d{1,2}-\d{1,2}"
-                r"|\d{1,2}-\d{1,2}"
-                r"|\d{1,2}月\d{1,2}[日号]?"
-                r"|\d{4}年\d{1,2}月\d{1,2}[日号]?"
-                r"|\d{1,2}月\d{1,2}日"
-                r"|\d{1,2}月\d{1,2}号"
-                r")"
-            ),
-            # 版本号（保护，不处理），支持英文和中文格式
-            "version": re.compile(
-                r"v(\d+\.\d+\.\d+|[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+"
-                r"(-[A-Za-z0-9]+)?)"
-            ),
-            # 英文连字符（保护，不处理）
-            "english_hyphen": re.compile(r"([a-zA-Z]+)-([a-zA-Z]+)"),
-            # 中文括号内英文/英文括号内中文（保护，不处理）
-            "chinese_paren_english": re.compile(r"（[a-zA-Z]+）"),
-            "english_paren_chinese": re.compile(r"[a-zA-Z]+（[\u4e00-\u9fa5]+）"),
-            # 英文标点后加空格（逗号、句号、问号、感叹号、分号、冒号）
-            "en_punct_after": re.compile(r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])"),
-            # 英文右括号后加空格
-            "en_rparen_after": re.compile(r"(\))([A-Za-z\u4e00-\u9fa5])"),
-            # 中文与 v 之间加空格（用于版本号前缀，v 后可跟数字或中文）
-            "chinese_v": re.compile(r"([\u4e00-\u9fa5])([vV])(?=[\d\u4e00-\u9fa5]+\.)"),
         }
 
     def format_content(self, content: str) -> str:
@@ -197,6 +88,7 @@ class MarkdownFormatter:
         formatted_lines = []
         in_code_block = False
         in_math_block = False
+
         for idx, line in enumerate(lines):
             # 检查多行代码块
             if line.strip().startswith("```"):
@@ -207,6 +99,7 @@ class MarkdownFormatter:
                     )
                 formatted_lines.append(line)
                 continue
+
             # 检查多行数学公式块
             if line.strip().startswith("$$"):
                 in_math_block = not in_math_block
@@ -216,13 +109,16 @@ class MarkdownFormatter:
                     )
                 formatted_lines.append(line)
                 continue
+
             # 跳过所有多行保护块
             if in_code_block or in_math_block or self._is_protected_content(line):
                 if self.debug:
                     logging.debug(f"Line {idx}: 跳过特殊内容 -> {line}")
                 formatted_lines.append(line)
                 continue
+
             formatted_lines.append(self._format_line(line))
+
         return "\n".join(formatted_lines)
 
     def _format_line(self, line: str) -> str:
@@ -234,183 +130,82 @@ class MarkdownFormatter:
         Returns:
             格式化后的行
         """
-        if self._is_protected_content(line):
-            if self.debug:
-                logging.debug(f"跳过单行特殊内容: {line}")
+        # 跳过块级代码和行内代码
+        if line.strip().startswith("```") or line.strip().startswith("`"):
             return line
 
-        formatted = line
-        placeholders = {}
-        placeholder_types = {}  # 新增：记录占位符类型
-        placeholder_idx = 0
+        # 结构类型检测
+        is_table = bool(re.match(r"^\|.*\|$", line.strip()))
+        is_list = bool(re.match(r"^\s*([-*+]|\d+\.)\s*", line))
+        is_title = bool(re.match(r"^#+\s*", line))
+        is_quote = bool(re.match(r"^>\s*", line))
 
-        # 0. 先处理中文+v之间加空格（用于版本号前缀）
-        formatted = self._patterns["chinese_v"].sub(r"\1 \2", formatted)
+        # 表格分隔线严格输出 | ---- | ---- |
+        if is_table and re.match(r"^\|[\s\-\|]+\|$", line.strip()):
+            parts = [p for p in line.strip().split("|")[1:-1]]
+            new_parts = ["----" for _ in parts]
+            return "| " + " | ".join(new_parts) + " |"
 
-        # 1. 先保护括号内容（括号内英文/括号内中文）
-        paren_patterns = [
-            self._patterns["chinese_paren_english"],
-            self._patterns["english_paren_chinese"],
-        ]
-        for pattern in paren_patterns:
+        # 表格内容行，按 | 分割，内容块修复
+        if is_table:
+            cells = line.strip().split("|")
+            new_cells = []
+            for cell in cells:
+                cell_strip = cell.strip()
+                if cell_strip:
+                    cell_strip = self.content_spacing_fix(cell_strip)
+                new_cells.append(" " + cell_strip + " " if cell_strip else "")
+            return "|".join(new_cells)
 
-            def _paren_repl(m: re.Match[str]) -> str:
-                nonlocal placeholder_idx
-                key = f"__PROTECT_{placeholder_idx}__"
-                placeholders[key] = m.group(0)
-                placeholder_types[key] = "paren"
-                placeholder_idx += 1
-                if self.debug:
-                    logging.debug(f"占位括号内容: {m.group(0)} -> {key}")
-                return key
-
-            formatted = pattern.sub(_paren_repl, formatted)
-
-        # 1.1 新增：优先保护文件名、技术缩写、工具名
-        protect_patterns_ext = [
-            (self._patterns["filename"], "filename"),
-            (self._patterns["tech_abbr"], "tech_abbr"),
-            (self._patterns["tool_name"], "tool_name"),
-        ]
-        for pattern, ptype in protect_patterns_ext:
-
-            def _repl_ext(m: re.Match[str], t: str = ptype) -> str:
-                nonlocal placeholder_idx
-                key = f"__PROTECT_{t.upper()}_{placeholder_idx}__"
-                placeholders[key] = m.group(0)
-                placeholder_types[key] = t
-                placeholder_idx += 1
-                if self.debug:
-                    logging.debug(f"占位保护内容({t}): {m.group(0)} -> {key}")
-                return key
-
-            formatted = pattern.sub(_repl_ext, formatted)
-
-        # 2. 再保护日期、版本号、英文连字符
-        protect_patterns = [
-            self._patterns["date"],
-            self._patterns["version"],
-            self._patterns["english_hyphen"],
-        ]
-        for i, pattern in enumerate(protect_patterns):
-
-            def _repl(m: re.Match[str], t: int = i) -> str:
-                nonlocal placeholder_idx
-                key = f"__PROTECT_{placeholder_idx}__"
-                placeholders[key] = m.group(0)
-                # 只对日期类型做特殊标记
-                if t == 0:
-                    placeholder_types[key] = "date"
-                else:
-                    placeholder_types[key] = "other"
-                placeholder_idx += 1
-                if self.debug:
-                    logging.debug(f"占位保护内容: {m.group(0)} -> {key}")
-                return key
-
-            formatted = pattern.sub(_repl, formatted)
-
-        # 3. 处理中文+日期占位符之间的空格（仅针对日期占位符，且后面不是中文时）
-        def add_space_chinese_date(m: re.Match[str]) -> str:
-            key = m.group(2)
-            if placeholder_types.get(key) == "date":
-                return m.group(1) + " " + key
-            return m.group(1) + key
-
-        formatted = re.sub(
-            r"([\u4e00-\u9fa5])(__PROTECT_\d+__)(?![\u4e00-\u9fa5])",
-            add_space_chinese_date,
-            formatted,
-        )
-
-        # 3.1 处理日期占位符+中文之间的空格（日期类型加空格，其他类型不加空格）
-        def space_date_chinese(m: re.Match[str]) -> str:
-            key = m.group(1)
-            if placeholder_types.get(key) == "date":
-                return key + " " + m.group(2)
-            return key + m.group(2)
-
-        formatted = re.sub(
-            r"(__PROTECT_\d+__)([\u4e00-\u9fa5])", space_date_chinese, formatted
-        )
-
-        # 3.2 处理中文+括号占位符时强制不加空格
-        def no_space_chinese_paren(m: re.Match[str]) -> str:
-            key = m.group(2)
-            if placeholder_types.get(key) == "paren":
-                return m.group(1) + key
-            return m.group(1) + " " + key
-
-        formatted = re.sub(
-            r"([\u4e00-\u9fa5])(__PROTECT_\d+__)", no_space_chinese_paren, formatted
-        )
-
-        # 4. 应用空格处理规则（不影响已被保护的内容）
-        formatted = self._patterns["chinese_english"].sub(r"\1 \2", formatted)
-        formatted = self._patterns["english_chinese"].sub(r"\1 \2", formatted)
-        formatted = self._patterns["chinese_number"].sub(r"\1 \2", formatted)
-        formatted = self._patterns["number_chinese"].sub(r"\1 \2", formatted)
-        formatted = self._patterns["number_english"].sub(r"\1 \2", formatted)
-        formatted = self._patterns["english_number"].sub(r"\1 \2", formatted)
-        formatted = self._patterns["math_symbols"].sub(r"\1 \2 \3", formatted)
-        # 英文标点后加空格
-        formatted = self._patterns["en_punct_after"].sub(r"\1 \2", formatted)
-        # 英文右括号后加空格
-        formatted = self._patterns["en_rparen_after"].sub(r"\1 \2", formatted)
-        if self.bold_quotes:
-
-            def _bold_quotes_with_space(m: re.Match[str]) -> str:
-                content = m.group(1)
-                # 如果内容中还有“或”，则认为是嵌套，直接返回原文
-                if "“" in content or "”" in content:
-                    return m.group(0)
-                start, end = m.start(), m.end()
-                before = formatted[start - 1] if start > 0 else ""
-                after = formatted[end] if end < len(formatted) else ""
-                bold = f"**{content}**"
-                need_space_before = before and re.match(r"[\w\u4e00-\u9fa5]", before)
-                need_space_after = after and re.match(r"[\w\u4e00-\u9fa5]", after)
+        # 标题、列表、引用，分离前缀和正文，正文修复
+        if is_title:
+            m = re.match(r"^(#+\s*)(.*)$", line)
+            if m:
+                prefix, content = m.group(1), m.group(2)
                 return (
-                    (" " if need_space_before else "")
-                    + bold
-                    + (" " if need_space_after else "")
+                    prefix.rstrip() + " " + self.content_spacing_fix(content.lstrip())
                 )
 
-            formatted = self._patterns["chinese_quotes"].sub(
-                _bold_quotes_with_space, formatted
-            )
-        formatted = self._patterns["chinese_hyphen"].sub(r"\1 - \2", formatted)
-        # 4.5 应用自定义扩展规则（如有）
-        for rule in self._custom_rules:
-            pattern = rule["pattern"]
-            repl = rule["repl"]
-            if isinstance(pattern, re.Pattern) and isinstance(repl, str):
-                if self.debug:
-                    logging.debug(f"应用自定义规则: {rule.get('name', pattern)}")
-                formatted = pattern.sub(repl, formatted)
+        if is_list:
+            m = re.match(r"^(\s*([-*+]|\d+\.)\s*)(.*)$", line)
+            if m:
+                prefix, content = m.group(1), m.group(3)
+                return (
+                    prefix.rstrip() + " " + self.content_spacing_fix(content.lstrip())
+                )
 
-        # 5. 还原所有保护性内容
-        for key, value in placeholders.items():
-            if self.debug:
-                logging.debug(f"还原保护内容: {key} -> {value}")
-            formatted = formatted.replace(key, value)
+        if is_quote:
+            m = re.match(r"^(>\s*)(.*)$", line)
+            if m:
+                prefix, content = m.group(1), m.group(2)
+                return (
+                    prefix.rstrip() + " " + self.content_spacing_fix(content.lstrip())
+                )
 
-        # 6. 版本号后紧跟中英文时加空格
-        formatted = re.sub(
-            r"(v\d+\.\d+\.\d+)([A-Za-z\u4e00-\u9fa5])", r"\1 \2", formatted
-        )
-        formatted = re.sub(
-            r"(v[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+\.[\u4e00-\u9fa5]+)"
-            r"(?![\u4e00-\u9fa5])([A-Za-z0-9])",
-            r"\1 \2",
-            formatted,
-        )
+        # 普通正文行
+        return self.content_spacing_fix(line)
 
-        # 删除此处简单的 bold_quotes 替换，避免覆盖前面复杂逻辑
-        # if getattr(self, "bold_quotes", False):
-        #     formatted = re.sub(r"“([^”]+)”", r"**\1**", formatted)
+    def content_spacing_fix(self, text: str) -> str:
+        """内容块空格修复（基础实现）。
 
-        return formatted
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 基础空格处理（待完善）
+        text = self._patterns["chinese_english"].sub(r"\1 \2", text)
+        text = self._patterns["english_chinese"].sub(r"\1 \2", text)
+        text = self._patterns["chinese_number"].sub(r"\1 \2", text)
+        text = self._patterns["number_chinese"].sub(r"\1 \2", text)
+        text = self._patterns["number_english"].sub(r"\1 \2", text)
+        text = self._patterns["english_number"].sub(r"\1 \2", text)
+
+        # 合并多个连续空格
+        text = re.sub(r" +", " ", text)
+
+        return text
 
     def _is_protected_content(self, line: str) -> bool:
         """检查行是否包含不应格式化的保护内容。
