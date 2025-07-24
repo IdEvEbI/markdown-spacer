@@ -7,6 +7,7 @@ markdown-spacer 核心格式化算法模块。
 
 import logging
 import re
+from re import Match
 from typing import Dict, List, Optional, Pattern
 
 
@@ -468,54 +469,38 @@ class MarkdownFormatter:
         Returns:
             修复后的文本
         """
-        # 简单的实现：只处理最外层的引号对
         # 如果文本以引号开始，说明是嵌套引号，不处理
         if text.startswith('"'):
             return text
 
-        # 查找所有引号对，但只处理第一个完整的引号对
-        result = ""
-        i = 0
-        while i < len(text):
-            if text[i] == '"':
-                # 找到开始引号
-                start = i
-                i += 1
-                # 寻找结束引号
-                while i < len(text) and text[i] != '"':
-                    i += 1
-                if i < len(text):
-                    # 找到结束引号
-                    content = text[start + 1 : i]
-                    # 在加粗内容前后添加空格（如果前后不是空格或标点）
-                    bold_content = "**" + content + "**"
+        def replace_quotes(match: Match[str]) -> str:
+            """替换引号内容的回调函数"""
+            content = match.group(1)
+            # 在加粗内容前后添加空格（如果前后不是空格或标点）
+            bold_content = "**" + content + "**"
 
-                    # 检查前面是否需要空格
-                    if (
-                        start > 0
-                        and not text[start - 1].isspace()
-                        and text[start - 1] not in "，。！？；："
-                    ):
-                        bold_content = " " + bold_content
+            # 检查前面是否需要空格
+            if (
+                match.start() > 0
+                and not text[match.start() - 1].isspace()
+                and text[match.start() - 1] not in "，。！？；："
+            ):
+                bold_content = " " + bold_content
 
-                    # 检查后面是否需要空格
-                    if (
-                        i + 1 < len(text)
-                        and not text[i + 1].isspace()
-                        and text[i + 1] not in "，。！？；："
-                    ):
-                        bold_content = bold_content + " "
+            # 检查后面是否需要空格
+            if (
+                match.end() < len(text)
+                and not text[match.end()].isspace()
+                and text[match.end()] not in "，。！？；："
+            ):
+                bold_content = bold_content + " "
 
-                    result += bold_content
-                    i += 1
-                else:
-                    # 没有找到结束引号，保持原样
-                    result += text[start:i]
-            else:
-                result += text[i]
-                i += 1
+            return bold_content
 
-        return result
+        # 使用正则表达式查找所有引号对，但只处理第一个完整的引号对
+        # 匹配模式：非引号字符 + 引号 + 内容 + 引号 + 非引号字符
+        pattern = r'"([^"]*)"'
+        return re.sub(pattern, replace_quotes, text)
 
     def _protect_special_content(self, text: str, protected_content: dict) -> str:
         """保护特殊内容，用占位符替换。
