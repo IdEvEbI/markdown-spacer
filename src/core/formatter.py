@@ -75,7 +75,11 @@ class MarkdownFormatter:
             "english_number": re.compile(r"([a-zA-Z])(\d)"),
             # 数学符号空格处理规则
             "math_symbols": re.compile(
-                r"([\u4e00-\u9fa5a-zA-Z0-9])([+\-/*=<>])([\u4e00-\u9fa5a-zA-Z0-9])"
+                r"([\u4e00-\u9fa5a-zA-Z0-9])([+/*=<>])([\u4e00-\u9fa5a-zA-Z0-9])"
+            ),
+            # 减号符号空格处理规则（排除版本号中的连字符）
+            "minus_symbol": re.compile(
+                r"([\u4e00-\u9fa5a-zA-Z0-9])(-)([\u4e00-\u9fa5a-zA-Z0-9])(?!\d)(?!\w*-)"
             ),
             # 标点符号空格处理规则
             "punctuation_after": re.compile(r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])"),
@@ -84,6 +88,11 @@ class MarkdownFormatter:
             "chinese_slash": re.compile(r"([\u4e00-\u9fa5])\s*/\s*([\u4e00-\u9fa5])"),
             # 编号与中文空格处理规则
             "number_chinese_priority": re.compile(r"([\u4e00-\u9fa5])(\d+)"),
+            # 技术术语修复规则
+            "version_number": re.compile(r"v (\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)?)"),
+            "tech_abbr": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+)"),
+            "tech_abbr_multi": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+) - ([A-Z0-9]+)"),
+            "tool_name": re.compile(r"(flake) (8)"),
         }
 
     def format_content(self, content: str) -> str:
@@ -199,15 +208,25 @@ class MarkdownFormatter:
     def content_spacing_fix(self, text: str) -> str:
         """内容块空格修复（基础实现）。
 
+        处理流程：
+        1. 特殊内容保护
+        2. 基础空格处理
+        3. 业务规则修复
+        4. 恢复特殊内容
+
         Args:
-            text: 要修复的文本
+            text: 要处理的文本
 
         Returns:
-            修复后的文本
+            处理后的文本
         """
+        # [DEBUG] 调试输出 - 开发完成后统一清理
+        print(f"[DEBUG] 开始处理: '{text}'")
+
         # 特殊内容保护：先保存特殊内容，用占位符替换
-        protected_content = {}
+        protected_content: Dict[str, str] = {}
         text = self._protect_special_content(text, protected_content)
+        print(f"[DEBUG] 特殊内容保护后: '{text}'")
 
         # 基础空格处理
         text = self._patterns["chinese_english"].sub(r"\1 \2", text)
@@ -216,25 +235,82 @@ class MarkdownFormatter:
         text = self._patterns["number_chinese"].sub(r"\1 \2", text)
         text = self._patterns["number_english"].sub(r"\1 \2", text)
         text = self._patterns["english_number"].sub(r"\1 \2", text)
+        print(f"[DEBUG] 基础空格处理后: '{text}'")
 
         # 数学符号空格处理
         text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
+        print(f"[DEBUG] 数学符号处理后: '{text}'")
+
+        # 减号符号空格处理（排除版本号中的连字符）
+        text = self._patterns["minus_symbol"].sub(r"\1 \2 \3", text)
+        print(f"[DEBUG] 减号符号处理后: '{text}'")
 
         # 标点符号空格处理
         text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
         text = self._patterns["rparen_after"].sub(r"\1 \2", text)
+        print(f"[DEBUG] 标点符号处理后: '{text}'")
 
         # 中文斜杠分隔空格处理
         text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
+        print(f"[DEBUG] 斜杠分隔处理后: '{text}'")
 
         # 编号与中文空格处理
         text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
+        print(f"[DEBUG] 编号中文处理后: '{text}'")
 
         # 合并多个连续空格
         text = re.sub(r" +", " ", text)
+        print(f"[DEBUG] 多空格合并后: '{text}'")
+
+        # 业务规则修复（删除不应该存在的空格）- 最后进行
+        text = self._apply_business_rules(text)
+        print(f"[DEBUG] 业务规则修复后: '{text}'")
 
         # 恢复特殊内容
         text = self._restore_special_content(text, protected_content)
+        print(f"[DEBUG] 恢复特殊内容后: '{text}'")
+        print(f"[DEBUG] 最终结果: '{text}'")
+        print("[DEBUG] " + "-" * 50)
+
+        return text
+
+    def _apply_business_rules(self, text: str) -> str:
+        """应用业务规则修复（删除不应该存在的空格）。
+
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 技术术语修复
+        text = self._fix_technical_terms(text)
+
+        return text
+
+    def _fix_technical_terms(self, text: str) -> str:
+        """修复技术术语中的空格问题。
+
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 版本号修复：v 1.2.3 -> v1.2.3, v 2.0.0-beta -> v2.0.0-beta
+        text = re.sub(r"v (\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)?)", r"v\1", text)
+
+        # 版本号连字符修复：v2.0.0 - beta -> v2.0.0-beta
+        text = re.sub(r"v(\d+(?:\.\d+)+) - ([a-zA-Z0-9]+)", r"v\1-\2", text)
+
+        # 技术缩写修复（多个连字符）：ISO - 8859 - 1 -> ISO-8859-1
+        text = self._patterns["tech_abbr_multi"].sub(r"\1-\2-\3", text)
+
+        # 技术缩写修复（单个连字符）：UTF - 8 -> UTF-8
+        text = self._patterns["tech_abbr"].sub(r"\1-\2", text)
+
+        # 工具名修复：flake 8 -> flake8
+        text = self._patterns["tool_name"].sub(r"\1\2", text)
 
         return text
 
