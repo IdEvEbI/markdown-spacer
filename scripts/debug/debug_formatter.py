@@ -187,6 +187,116 @@ def test_html_protection():
         print()
 
 
+def test_technical_terms():
+    """测试技术术语修复"""
+    print("=== 技术术语修复测试 ===")
+    fmt = MarkdownFormatter()
+
+    test_cases = [
+        # 版本号修复
+        ("v 1.2.3", "v1.2.3"),
+        ("v 2.0.0-beta", "v2.0.0-beta"),
+        # 技术缩写修复
+        ("UTF - 8", "UTF-8"),
+        ("JSON - LD", "JSON-LD"),
+        ("ISO - 8859 - 1", "ISO-8859-1"),
+        # 工具名修复
+        ("flake 8", "flake8"),
+    ]
+
+    for input_text, expected in test_cases:
+        result = fmt.content_spacing_fix(input_text)
+        status = "✅" if result == expected else "❌"
+        print(f"{status} 输入: {input_text}")
+        print(f"   期望: {expected}")
+        print(f"   实际: {result}")
+        print()
+
+
+def test_regex_debug():
+    """调试正则表达式匹配"""
+    print("=== 正则表达式调试 ===")
+    import re
+
+    # 测试版本号正则
+    version_pattern = re.compile(r"v (\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)?)")
+    test_cases = [
+        "v 1.2.3",
+        "v 2.0.0-beta",
+        "v 1.0.0",
+    ]
+
+    for text in test_cases:
+        match = version_pattern.search(text)
+        if match:
+            print(f"✅ 匹配: {text} -> {match.group(1)}")
+        else:
+            print(f"❌ 不匹配: {text}")
+
+    # 测试技术缩写正则
+    tech_pattern = re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+)")
+    tech_cases = [
+        "UTF - 8",
+        "JSON - LD",
+        "ISO - 8859 - 1",
+    ]
+
+    for text in tech_cases:
+        match = tech_pattern.search(text)
+        if match:
+            print(f"✅ 匹配: {text} -> {match.group(1)}, {match.group(2)}")
+        else:
+            print(f"❌ 不匹配: {text}")
+
+
+def test_business_rules_direct():
+    """直接测试业务规则修复"""
+    print("=== 业务规则修复直接测试 ===")
+    fmt = MarkdownFormatter()
+
+    # 直接调用业务规则修复方法
+    test_cases = [
+        ("v 1.2.3", "v1.2.3"),
+        ("UTF - 8", "UTF-8"),
+        ("JSON - LD", "JSON-LD"),
+        ("ISO - 8859 - 1", "ISO-8859-1"),
+        ("flake 8", "flake8"),
+    ]
+
+    for input_text, expected in test_cases:
+        # 直接调用业务规则修复
+        result = fmt._apply_business_rules(input_text)
+        status = "✅" if result == expected else "❌"
+        print(f"{status} 输入: {input_text}")
+        print(f"   期望: {expected}")
+        print(f"   实际: {result}")
+        print()
+
+
+def test_file_path_fixes() -> None:
+    """测试文件路径修复功能。"""
+    print("=== 文件路径修复测试 ===")
+
+    fmt = MarkdownFormatter()
+
+    test_cases = [
+        ("requirements . txt", "requirements.txt"),
+        ("main . cpp", "main.cpp"),
+        ("src / core / formatter. py", "src/core/formatter.py"),
+        ("docs / design / plan. md", "docs/design/plan.md"),
+        ("requirements.txt", "requirements.txt"),  # 已经是正确格式
+        ("setup.py", "setup.py"),  # 已经是正确格式
+    ]
+
+    for input_text, expected in test_cases:
+        result = fmt.content_spacing_fix(input_text)
+        status = "✅" if result == expected else "❌"
+        print(f"{status} 输入: {input_text}")
+        print(f"   期望: {expected}")
+        print(f"   实际: {result}")
+        print()
+
+
 def main():
     """主函数"""
     print("🚀 markdown-spacer 格式化器调试工具")
@@ -199,7 +309,11 @@ def main():
     test_protection()
     test_mixed_content()
     test_regex_patterns()
-    test_html_protection()  # 添加HTML保护测试
+    test_html_protection()
+    test_technical_terms()
+    test_regex_debug()
+    test_business_rules_direct()  # 添加业务规则直接测试
+    test_file_path_fixes()  # 添加文件路径修复测试
 
     print("🎉 调试完成！")
 

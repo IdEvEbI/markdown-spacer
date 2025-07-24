@@ -81,8 +81,10 @@ class MarkdownFormatter:
             "minus_symbol": re.compile(
                 r"([\u4e00-\u9fa5a-zA-Z0-9])(-)([\u4e00-\u9fa5a-zA-Z0-9])(?!\d)(?!\w*-)"
             ),
-            # 标点符号空格处理规则
-            "punctuation_after": re.compile(r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])"),
+            # 英文标点后空格处理规则（排除文件扩展名中的点号）
+            "punctuation_after": re.compile(
+                r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])(?!\w*\.\w+)"
+            ),
             "rparen_after": re.compile(r"(\))([A-Za-z\u4e00-\u9fa5])"),
             # 中文斜杠分隔空格处理规则
             "chinese_slash": re.compile(r"([\u4e00-\u9fa5])\s*/\s*([\u4e00-\u9fa5])"),
@@ -93,6 +95,14 @@ class MarkdownFormatter:
             "tech_abbr": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+)"),
             "tech_abbr_multi": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+) - ([A-Z0-9]+)"),
             "tool_name": re.compile(r"(flake) (8)"),
+            # 文件路径修复规则
+            "file_extension": re.compile(r"(\w+) \. ([a-zA-Z0-9]+)"),
+            "path_separator": re.compile(
+                r"(?<![\u4e00-\u9fa5])\s*/\s*(?![\u4e00-\u9fa5])"
+            ),
+            "filename_protection": re.compile(
+                r"([\w\-]+\.(txt|py|toml|yaml|yml|json|md|markdown))"
+            ),
         }
 
     def format_content(self, content: str) -> str:
@@ -286,6 +296,9 @@ class MarkdownFormatter:
         # 技术术语修复
         text = self._fix_technical_terms(text)
 
+        # 文件路径修复
+        text = self._fix_file_paths(text)
+
         return text
 
     def _fix_technical_terms(self, text: str) -> str:
@@ -314,6 +327,27 @@ class MarkdownFormatter:
 
         return text
 
+    def _fix_file_paths(self, text: str) -> str:
+        """修复文件路径中的空格问题。
+
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 路径分隔符修复：src / core / formatter. py -> src/core/formatter. py
+        text = self._patterns["path_separator"].sub("/", text)
+
+        # 文件扩展名修复：requirements . txt -> requirements.txt
+        text = self._patterns["file_extension"].sub(r"\1.\2", text)
+
+        # 路径中的文件扩展名修复：src/core/formatter. py -> src/core/formatter.py
+        # 匹配路径中最后一个文件名前的空格
+        text = re.sub(r"([\w\-/]+) \. ([a-zA-Z0-9]+)(?=\s|$)", r"\1.\2", text)
+
+        return text
+
     def _protect_special_content(self, text: str, protected_content: dict) -> str:
         """保护特殊内容，用占位符替换。
 
@@ -338,6 +372,9 @@ class MarkdownFormatter:
 
         # 保护HTML标签：<...>
         text = self._protect_html_tags(text, protected_content)
+
+        # 保护文件名：requirements.txt, setup.py 等
+        text = self._protect_filenames(text, protected_content)
 
         return text
 
@@ -468,6 +505,25 @@ class MarkdownFormatter:
         # 保护开始标签：<tag>
         text = re.sub(
             r"(<[^>]*>)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        return text
+
+    def _protect_filenames(self, text: str, protected_content: dict) -> str:
+        """保护文件名。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护文件名：requirements.txt, setup.py 等
+        text = re.sub(
+            r"([\w\-]+\.(txt|py|toml|yaml|yml|json|md|markdown))",
             lambda m: self._create_placeholder(m.group(1), protected_content),
             text,
         )
