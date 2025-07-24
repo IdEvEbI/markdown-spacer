@@ -195,6 +195,37 @@ def test_html_protection() -> None:
         print()
 
 
+def test_comparison_symbol_fix() -> None:
+    """测试比较符号修复"""
+    print("=== 比较符号修复测试 ===")
+    fmt = MarkdownFormatter()
+
+    test_cases = [
+        # 比较符号修复
+        (">=100GB", ">= 100GB"),
+        ("<5ms", "< 5ms"),
+        ("!=30s", "!= 30s"),
+        ("==0", "== 0"),
+        (">10", "> 10"),
+        ("<=50", "<= 50"),
+        # 中文比较符号
+        ("＞100", "＞ 100"),
+        ("＜50", "＜ 50"),
+        ("≥200", "≥ 200"),
+        ("≤30", "≤ 30"),
+        ("＝0", "＝ 0"),
+        ("≠1", "≠ 1"),
+    ]
+
+    for input_text, expected in test_cases:
+        result = fmt.content_spacing_fix(input_text)
+        status = "✅" if result == expected else "❌"
+        print(f"{status} 输入: {input_text}")
+        print(f"   期望: {expected}")
+        print(f"   实际: {result}")
+        print()
+
+
 def test_technical_terms() -> None:
     """测试技术术语修复"""
     print("=== 技术术语修复测试 ===")
@@ -318,6 +349,7 @@ def main() -> None:
     test_mixed_content()
     test_regex_patterns()
     test_html_protection()
+    test_comparison_symbol_fix()
     test_technical_terms()
     test_regex_debug()
     test_business_rules_direct()  # 添加业务规则直接测试

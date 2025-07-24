@@ -71,7 +71,7 @@ class MarkdownFormatter:
             "english_chinese": re.compile(r"([a-zA-Z])([\u4e00-\u9fa5])"),
             "chinese_number": re.compile(r"([\u4e00-\u9fa5])(\d)"),
             "number_chinese": re.compile(r"(\d)([\u4e00-\u9fa5])"),
-            "number_english": re.compile(r"(\d)([a-zA-Z])"),
+            "number_english": re.compile(r"(\d)([a-zA-Z])(?!\s*[>=<≤≥＝≠])"),
             "english_number": re.compile(r"([a-zA-Z])(\d)"),
             # 数学符号空格处理规则
             "math_symbols": re.compile(
@@ -99,6 +99,14 @@ class MarkdownFormatter:
             "file_extension": re.compile(r"(\w+) \. ([a-zA-Z0-9]+)"),
             "path_separator": re.compile(
                 r"(?<![\u4e00-\u9fa5])\s*/\s*(?![\u4e00-\u9fa5])"
+            ),
+            # 比较符号修复规则
+            "comparison_symbols": re.compile(
+                r"(>=|<=|!=|==|>|<|＞|＜|≥|≤|＝|≠)\s*([0-9])"
+            ),
+            # 比较符号修复规则（处理已经被基础空格处理的情况）
+            "comparison_symbols_fix": re.compile(
+                r"(>=|<=|!=|==|>|<|＞|＜|≥|≤|＝|≠)\s+([0-9]+)\s+([A-Za-z]+)"
             ),
             "filename_protection": re.compile(
                 r"([\w\-]+\.(txt|py|toml|yaml|yml|json|md|markdown))"
@@ -293,6 +301,9 @@ class MarkdownFormatter:
         Returns:
             修复后的文本
         """
+        # 比较符号修复
+        text = self._fix_comparison_symbols(text)
+
         # 技术术语修复
         text = self._fix_technical_terms(text)
 
@@ -346,6 +357,21 @@ class MarkdownFormatter:
         # 匹配路径中最后一个文件名前的空格
         text = re.sub(r"([\w\-/]+) \. ([a-zA-Z0-9]+)(?=\s|$)", r"\1.\2", text)
 
+        return text
+
+    def _fix_comparison_symbols(self, text: str) -> str:
+        """修复比较符号中的空格问题。
+
+        Args:
+            text: 要修复的文本
+
+        Returns:
+            修复后的文本
+        """
+        # 比较符号修复：>=100 -> >= 100, <=50 -> <= 50, !=30 -> != 30
+        text = self._patterns["comparison_symbols"].sub(r"\1 \2", text)
+        # 比较符号修复（处理已经被基础空格处理的情况）：>= 100 GB -> >= 100GB
+        text = self._patterns["comparison_symbols_fix"].sub(r"\1 \2\3", text)
         return text
 
     def _protect_special_content(self, text: str, protected_content: dict) -> str:
