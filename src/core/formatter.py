@@ -97,9 +97,18 @@ class MarkdownFormatter:
             "tech_abbr": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+)"),
             "tech_abbr_multi": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+) - ([A-Z0-9]+)"),
             "tool_name": re.compile(r"(flake) (8)"),
+            # 数字与单位修复规则
+            "number_unit": re.compile(
+                r"(\d+) (MB|GB|KB|TB|B|℃|°C|°F|%|km|cm|mm|m|kg|g|mg|s|ms|h|d|"
+                r"px|em|rem|pt)"
+            ),
+            "number_unit_plus": re.compile(r"(\d+)(MB|GB|KB|TB|B)\s*\+"),
+            # 英文连字符修复规则
+            "english_hyphen": re.compile(r"([a-zA-Z0-9]+) - ([a-zA-Z0-9]+)"),
             # 文件路径修复规则
             "file_extension": re.compile(r"(\w+) \. ([a-zA-Z0-9]+)"),
-            "path_separator": re.compile(r"(?<=\w)\s*/\s*(?=\w)(?=.*\.\w+|\w+\.\w+)"),
+            "path_separator": re.compile(r"\s*/\s*"),
+            "path_file_extension": re.compile(r"([\w\-/]+)\s+\.\s+([a-zA-Z0-9]+)"),
             # 比较符号修复规则
             "comparison_symbols": re.compile(
                 r"(>=|<=|!=|==|>|<|＞|＜|≥|≤|＝|≠)\s*([0-9])"
@@ -349,6 +358,16 @@ class MarkdownFormatter:
         # 工具名修复：flake 8 -> flake8
         text = self._patterns["tool_name"].sub(r"\1\2", text)
 
+        # 数字与单位修复
+        text = self._patterns["number_unit"].sub(r"\1\2", text)
+        text = self._patterns["number_unit_plus"].sub(r"\1\2+", text)
+
+        # 英文连字符修复
+        text = self._patterns["english_hyphen"].sub(r"\1-\2", text)
+
+        # 去除末尾空格
+        text = text.rstrip()
+
         return text
 
     def _fix_file_paths(self, text: str) -> str:
@@ -369,7 +388,7 @@ class MarkdownFormatter:
 
         # 路径中的文件扩展名修复：src/core/formatter. py -> src/core/formatter.py
         # 匹配路径中最后一个文件名前的空格
-        text = re.sub(r"([\w\-/]+) \. ([a-zA-Z0-9]+)(?=\s|$)", r"\1.\2", text)
+        text = self._patterns["path_file_extension"].sub(r"\1.\2", text)
 
         return text
 

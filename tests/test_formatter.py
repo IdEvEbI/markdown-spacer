@@ -416,9 +416,9 @@ $$
         assert "A + B" in result  # 数学符号处理已实现
 
         # 验证特殊格式处理
-        assert "UTF - 8" in result  # 技术缩写应该被处理
-        assert "10 MB" in result  # 单位应该被处理
-        assert "v 1.2.3" in result  # 版本号应该被处理
+        assert "UTF-8" in result  # 技术缩写应该被处理
+        assert "10MB" in result  # 单位应该被处理
+        assert "v1.2.3" in result  # 版本号应该被处理
 
         # 验证保护内容
         assert "```python" in result  # 代码块应该被保护
