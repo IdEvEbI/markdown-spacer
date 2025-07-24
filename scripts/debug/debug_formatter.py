@@ -14,10 +14,18 @@ project_root = os.path.dirname(
 )
 sys.path.insert(0, project_root)
 
-from src.core.formatter import MarkdownFormatter
+# Import after path setup
+try:
+    from src.core.formatter import MarkdownFormatter
+except ImportError:
+    print(
+        "Error: Could not import MarkdownFormatter. "
+        "Please ensure you're running from the project root."
+    )
+    sys.exit(1)
 
 
-def test_basic_spacing():
+def test_basic_spacing() -> None:
     """测试基础空格处理"""
     print("=== 基础空格处理测试 ===")
     fmt = MarkdownFormatter()
@@ -40,7 +48,7 @@ def test_basic_spacing():
         print()
 
 
-def test_math_symbols():
+def test_math_symbols() -> None:
     """测试数学符号处理"""
     print("=== 数学符号处理测试 ===")
     fmt = MarkdownFormatter()
@@ -61,7 +69,7 @@ def test_math_symbols():
         print()
 
 
-def test_punctuation():
+def test_punctuation() -> None:
     """测试标点符号处理"""
     print("=== 标点符号处理测试 ===")
     fmt = MarkdownFormatter()
@@ -81,7 +89,7 @@ def test_punctuation():
         print()
 
 
-def test_protection():
+def test_protection() -> None:
     """测试特殊内容保护"""
     print("=== 特殊内容保护测试 ===")
     fmt = MarkdownFormatter()
@@ -115,7 +123,7 @@ def test_protection():
         print()
 
 
-def test_mixed_content():
+def test_mixed_content() -> None:
     """测试混合内容"""
     print("=== 混合内容测试 ===")
     fmt = MarkdownFormatter()
@@ -142,7 +150,7 @@ def test_mixed_content():
         print()
 
 
-def test_regex_patterns():
+def test_regex_patterns() -> None:
     """测试正则表达式模式"""
     print("=== 正则表达式模式测试 ===")
     import re
@@ -166,7 +174,7 @@ def test_regex_patterns():
     print(f"链接匹配: {matches3}")
 
 
-def test_html_protection():
+def test_html_protection() -> None:
     """专门测试HTML标签保护"""
     print("=== HTML标签保护测试 ===")
     fmt = MarkdownFormatter()
@@ -187,7 +195,7 @@ def test_html_protection():
         print()
 
 
-def test_technical_terms():
+def test_technical_terms() -> None:
     """测试技术术语修复"""
     print("=== 技术术语修复测试 ===")
     fmt = MarkdownFormatter()
@@ -213,7 +221,7 @@ def test_technical_terms():
         print()
 
 
-def test_regex_debug():
+def test_regex_debug() -> None:
     """调试正则表达式匹配"""
     print("=== 正则表达式调试 ===")
     import re
@@ -249,7 +257,7 @@ def test_regex_debug():
             print(f"❌ 不匹配: {text}")
 
 
-def test_business_rules_direct():
+def test_business_rules_direct() -> None:
     """直接测试业务规则修复"""
     print("=== 业务规则修复直接测试 ===")
     fmt = MarkdownFormatter()
@@ -297,7 +305,7 @@ def test_file_path_fixes() -> None:
         print()
 
 
-def main():
+def main() -> None:
     """主函数"""
     print("🚀 markdown-spacer 格式化器调试工具")
     print("=" * 50)
