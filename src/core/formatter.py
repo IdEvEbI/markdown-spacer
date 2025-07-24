@@ -205,6 +205,10 @@ class MarkdownFormatter:
         Returns:
             修复后的文本
         """
+        # 特殊内容保护：先保存特殊内容，用占位符替换
+        protected_content = {}
+        text = self._protect_special_content(text, protected_content)
+
         # 基础空格处理
         text = self._patterns["chinese_english"].sub(r"\1 \2", text)
         text = self._patterns["english_chinese"].sub(r"\1 \2", text)
@@ -229,7 +233,184 @@ class MarkdownFormatter:
         # 合并多个连续空格
         text = re.sub(r" +", " ", text)
 
+        # 恢复特殊内容
+        text = self._restore_special_content(text, protected_content)
+
         return text
+
+    def _protect_special_content(self, text: str, protected_content: dict) -> str:
+        """保护特殊内容，用占位符替换。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护数学公式：$...$ 和 $$...$$
+        text = self._protect_math_formulas(text, protected_content)
+
+        # 保护行内代码：`...`
+        text = self._protect_inline_code(text, protected_content)
+
+        # 保护链接：[text](url)
+        text = self._protect_links(text, protected_content)
+
+        # 保护图片：![alt](url)
+        text = self._protect_images(text, protected_content)
+
+        # 保护HTML标签：<...>
+        text = self._protect_html_tags(text, protected_content)
+
+        return text
+
+    def _restore_special_content(self, text: str, protected_content: dict) -> str:
+        """恢复特殊内容，将占位符替换回原内容。
+
+        Args:
+            text: 处理后的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            恢复后的文本
+        """
+        # 按占位符ID逆序恢复，避免嵌套问题
+        for placeholder_id in sorted(protected_content.keys(), reverse=True):
+            original_content = protected_content[placeholder_id]
+            text = text.replace(placeholder_id, original_content)
+
+        return text
+
+    def _protect_math_formulas(self, text: str, protected_content: dict) -> str:
+        """保护数学公式。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护块级数学公式：$$...$$
+        text = re.sub(
+            r"(\$\$[^$]*\$\$)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        # 保护行内数学公式：$...$
+        text = re.sub(
+            r"(\$[^$\n]*\$)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        return text
+
+    def _protect_inline_code(self, text: str, protected_content: dict) -> str:
+        """保护行内代码。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护行内代码：`...`
+        text = re.sub(
+            r"(`[^`]*`)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        return text
+
+    def _protect_links(self, text: str, protected_content: dict) -> str:
+        """保护链接。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护链接：[text](url)
+        text = re.sub(
+            r"(\[[^\]]*\]\([^)]*\))",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        return text
+
+    def _protect_images(self, text: str, protected_content: dict) -> str:
+        """保护图片。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护图片：![alt](url)
+        text = re.sub(
+            r"(!\[[^\]]*\]\([^)]*\))",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        return text
+
+    def _protect_html_tags(self, text: str, protected_content: dict) -> str:
+        """保护HTML标签。
+
+        Args:
+            text: 要处理的文本
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            替换后的文本
+        """
+        # 保护完整的HTML元素：<tag>content</tag>
+        text = re.sub(
+            r"(<[^>]*>[^<]*</[^>]*>)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        # 保护自闭合HTML标签：<tag />
+        text = re.sub(
+            r"(<[^>]*/>)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        # 保护开始标签：<tag>
+        text = re.sub(
+            r"(<[^>]*>)",
+            lambda m: self._create_placeholder(m.group(1), protected_content),
+            text,
+        )
+
+        return text
+
+    def _create_placeholder(self, content: str, protected_content: dict) -> str:
+        """创建占位符并保存原内容。
+
+        Args:
+            content: 要保护的内容
+            protected_content: 存储被保护内容的字典
+
+        Returns:
+            占位符
+        """
+        placeholder_id = f"__PROTECTED_{len(protected_content)}__"
+        protected_content[placeholder_id] = content
+        return placeholder_id
 
     def _is_protected_content(self, line: str) -> bool:
         """检查是否为受保护的内容。
