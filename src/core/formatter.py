@@ -108,7 +108,7 @@ class MarkdownFormatter:
             # 文件路径修复规则
             "file_extension": re.compile(r"(\w+) \. ([a-zA-Z0-9]+)"),
             "path_separator": re.compile(
-                r"(?<=\w)\s*/\s*(?=\w)(?=.*\.\w+|\w+\.\w+)(?!.*[\u4e00-\u9fa5])"
+                r"(?<=\w)\s*/\s*(?=\w)(?=.*\.\w+)(?!.*[\u4e00-\u9fa5])"
             ),
             "path_file_extension": re.compile(r"([\w\-/]+)\s+\.\s+([a-zA-Z0-9]+)"),
             # 比较符号修复规则
@@ -328,11 +328,11 @@ class MarkdownFormatter:
         # 技术术语修复
         text = self._fix_technical_terms(text)
 
-        # 文件路径修复
-        text = self._fix_file_paths(text)
-
         # 日期格式修复
         text = self._fix_date_format(text)
+
+        # 文件路径修复（最后执行，避免影响其他规则）
+        text = self._fix_file_paths(text)
 
         return text
 
@@ -383,16 +383,24 @@ class MarkdownFormatter:
         Returns:
             修复后的文本
         """
-        # 路径分隔符修复：src / core / formatter. py -> src/core/formatter. py
-        # 但避免影响中文斜杠分隔：文本 / JSON -> 文本 / JSON
-        text = self._patterns["path_separator"].sub("/", text)
-
         # 文件扩展名修复：requirements . txt -> requirements.txt
         text = self._patterns["file_extension"].sub(r"\1.\2", text)
+
+        # 路径分隔符修复：src / core / formatter. py -> src/core/formatter. py
+        # 只处理包含文件扩展名的路径，避免影响中文斜杠分隔
+        if re.search(r"\.\s*\w+", text) and not re.search(
+            r"[\u4e00-\u9fa5]", text
+        ):  # 如果包含文件扩展名且不包含中文
+            text = re.sub(r"(?<=\w)\s*/\s*(?=\w)", "/", text)
 
         # 路径中的文件扩展名修复：src/core/formatter. py -> src/core/formatter.py
         # 匹配路径中最后一个文件名前的空格
         text = self._patterns["path_file_extension"].sub(r"\1.\2", text)
+
+        # 兜底处理：修复文件路径中点号后的空格 . py -> .py
+        # 只处理包含斜杠的路径，避免影响普通文本
+        if "/" in text:
+            text = re.sub(r"\.\s+([a-zA-Z0-9]+)", r".\1", text)
 
         return text
 
