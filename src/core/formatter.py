@@ -107,7 +107,9 @@ class MarkdownFormatter:
             "english_hyphen": re.compile(r"([a-zA-Z0-9]+) - ([a-zA-Z0-9]+)"),
             # 文件路径修复规则
             "file_extension": re.compile(r"(\w+) \. ([a-zA-Z0-9]+)"),
-            "path_separator": re.compile(r"\s*/\s*"),
+            "path_separator": re.compile(
+                r"(?<=\w)\s*/\s*(?=\w)(?=.*\.\w+|\w+\.\w+)(?!.*[\u4e00-\u9fa5])"
+            ),
             "path_file_extension": re.compile(r"([\w\-/]+)\s+\.\s+([a-zA-Z0-9]+)"),
             # 比较符号修复规则
             "comparison_symbols": re.compile(
