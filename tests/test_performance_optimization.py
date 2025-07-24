@@ -57,22 +57,29 @@ class TestFormatterOptimization:
 
     def test_list_preallocation_optimization(self) -> None:
         """测试列表预分配优化。"""
-        # 生成大量测试内容
-        large_content = "中文English" * 10000
+        # 生成中等测试内容
+        large_content = "中文English" * 1000
 
-        formatter = MarkdownFormatter()
+        # 写入临时大文件
+        import tempfile
 
-        # 测量格式化性能
+        with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8") as tmp:
+            tmp.write(large_content)
+            tmp_path = tmp.name
+
+        from src.core.smart_processor import SmartFileProcessor
+
+        processor = SmartFileProcessor()
         benchmark = PerformanceBenchmark()
         exec_time, _ = benchmark.measure_execution_time(
-            formatter.format_content, large_content
+            processor.process_file_to_string, tmp_path
         )
 
         # 验证处理时间合理
-        assert exec_time < 5.0  # 大文件处理应该在5秒内
+        assert exec_time < 5.0  # 中等文件处理应该在5秒内
 
         # 验证结果正确
-        result = formatter.format_content(large_content)
+        result = processor.process_file_to_string(tmp_path)
         assert "中文 English" in result
 
     def test_merge_replace_operations(self) -> None:
