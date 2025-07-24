@@ -100,7 +100,7 @@ class MarkdownFormatter:
             # 技术术语修复规则
             "version_number": re.compile(r"v (\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)?)"),
             "tech_abbr": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+)"),
-            "tech_abbr_multi": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+) - ([A-Z0-9]+)"),
+            "tech_abbr_multi": re.compile(r"([A-Z]{2,}) - ([A-Z0-9]+) - ([A-Z09]+)"),
             "tool_name": re.compile(r"(flake) (8)"),
             # 数字与单位修复规则
             "number_unit": re.compile(
@@ -491,7 +491,7 @@ class MarkdownFormatter:
         return text
 
     def _fix_chinese_quotes_bold(self, text: str) -> str:
-        """修复中文双引号加粗。
+        """只加粗最外层的中文双引号内容。
 
         Args:
             text: 要修复的文本
@@ -499,38 +499,38 @@ class MarkdownFormatter:
         Returns:
             修复后的文本
         """
-        # 如果文本以引号开始，说明是嵌套引号，不处理
-        if text.startswith('"'):
-            return text
 
-        def replace_quotes(match: Match[str]) -> str:
-            """替换引号内容的回调函数"""
+        def replace_outer_cn_quotes(match: Match[str]) -> str:
             content = match.group(1)
-            # 在加粗内容前后添加空格（如果前后不是空格或标点）
-            bold_content = "**" + content + "**"
-
-            # 检查前面是否需要空格
+            bold_content = f"**{content}**"
+            prefix = match.start()
+            suffix = match.end()
             if (
-                match.start() > 0
-                and not text[match.start() - 1].isspace()
-                and text[match.start() - 1] not in "，。！？；："
+                prefix > 0
+                and not text[prefix - 1].isspace()
+                and text[prefix - 1] not in "，。！？；："
             ):
                 bold_content = " " + bold_content
-
-            # 检查后面是否需要空格
             if (
-                match.end() < len(text)
-                and not text[match.end()].isspace()
-                and text[match.end()] not in "，。！？；："
+                suffix < len(text)
+                and not text[suffix].isspace()
+                and text[suffix] not in "，。！？；："
             ):
                 bold_content = bold_content + " "
-
             return bold_content
 
-        # 使用正则表达式查找所有引号对，但只处理第一个完整的引号对
-        # 匹配模式：非引号字符 + 引号 + 内容 + 引号 + 非引号字符
-        pattern = r'"([^"]*)"'
-        return re.sub(pattern, replace_quotes, text)
+        # 优先并列，嵌套直接跳过
+        stack = 0
+        for c in text:
+            if c == "“":
+                stack += 1
+                if stack > 1:
+                    return text  # 有嵌套，直接返回原文
+            elif c == "”":
+                stack -= 1
+        # 匹配所有并列的“内容”
+        text = re.sub(r"“([^“”]+)”", replace_outer_cn_quotes, text)
+        return text
 
     def _protect_special_content(self, text: str, protected_content: dict) -> str:
         """保护特殊内容，用占位符替换。
