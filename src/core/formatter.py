@@ -10,6 +10,8 @@ import re
 from re import Match
 from typing import Dict, List, Optional, Pattern
 
+from src.utils.logger import get_logger
+
 
 class MarkdownFormatter:
     """Markdown 内容空格处理核心格式化器。
@@ -45,8 +47,11 @@ class MarkdownFormatter:
         self._patterns = self._get_patterns()
         self._custom_rules = custom_rules or []
         self.debug = debug
+
+        # 设置logger
+        self.logger = get_logger("formatter")
         if self.debug:
-            logging.basicConfig(level=logging.DEBUG)
+            self.logger.setLevel(logging.DEBUG)
 
     @classmethod
     def _get_patterns(cls) -> Dict[str, re.Pattern]:
@@ -255,13 +260,13 @@ class MarkdownFormatter:
         Returns:
             处理后的文本
         """
-        # [DEBUG] 调试输出 - 开发完成后统一清理
-        print(f"[DEBUG] 开始处理: '{text}'")
+        # 调试日志 - 仅在debug模式下输出
+        self.logger.debug(f"开始处理: '{text}'")
 
         # 特殊内容保护：先保存特殊内容，用占位符替换
         protected_content: Dict[str, str] = {}
         text = self._protect_special_content(text, protected_content)
-        print(f"[DEBUG] 特殊内容保护后: '{text}'")
+        self.logger.debug(f"特殊内容保护后: '{text}'")
 
         # 基础空格处理
         text = self._patterns["chinese_english"].sub(r"\1 \2", text)
@@ -270,47 +275,47 @@ class MarkdownFormatter:
         text = self._patterns["number_chinese"].sub(r"\1 \2", text)
         text = self._patterns["number_english"].sub(r"\1 \2", text)
         text = self._patterns["english_number"].sub(r"\1 \2", text)
-        print(f"[DEBUG] 基础空格处理后: '{text}'")
+        self.logger.debug(f"基础空格处理后: '{text}'")
 
         # 数学符号空格处理
         text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
-        print(f"[DEBUG] 数学符号处理后: '{text}'")
+        self.logger.debug(f"数学符号处理后: '{text}'")
 
         # 减号符号空格处理（排除版本号中的连字符）
         text = self._patterns["minus_symbol"].sub(r"\1 \2 \3", text)
-        print(f"[DEBUG] 减号符号处理后: '{text}'")
+        self.logger.debug(f"减号符号处理后: '{text}'")
 
         # 标点符号空格处理
         text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
         text = self._patterns["rparen_after"].sub(r"\1 \2", text)
-        print(f"[DEBUG] 标点符号处理后: '{text}'")
+        self.logger.debug(f"标点符号处理后: '{text}'")
 
         # 中文斜杠分隔空格处理
         text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
-        print(f"[DEBUG] 斜杠分隔处理后: '{text}'")
+        self.logger.debug(f"斜杠分隔处理后: '{text}'")
 
         # 编号与中文空格处理
         text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
-        print(f"[DEBUG] 编号中文处理后: '{text}'")
+        self.logger.debug(f"编号中文处理后: '{text}'")
 
         # 合并多个连续空格
         text = re.sub(r" +", " ", text)
-        print(f"[DEBUG] 多空格合并后: '{text}'")
+        self.logger.debug(f"多空格合并后: '{text}'")
 
         # 业务规则修复（删除不应该存在的空格）- 最后进行
         text = self._apply_business_rules(text)
-        print(f"[DEBUG] 业务规则修复后: '{text}'")
+        self.logger.debug(f"业务规则修复后: '{text}'")
 
         # 中文双引号加粗（可选功能）
         if self.bold_quotes:
             text = self._fix_chinese_quotes_bold(text)
-            print(f"[DEBUG] 中文双引号加粗后: '{text}'")
+            self.logger.debug(f"中文双引号加粗后: '{text}'")
 
         # 恢复特殊内容
         text = self._restore_special_content(text, protected_content)
-        print(f"[DEBUG] 恢复特殊内容后: '{text}'")
-        print(f"[DEBUG] 最终结果: '{text}'")
-        print("[DEBUG] " + "-" * 50)
+        self.logger.debug(f"恢复特殊内容后: '{text}'")
+        self.logger.debug(f"最终结果: '{text}'")
+        self.logger.debug("-" * 50)
 
         return text
 
