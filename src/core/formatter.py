@@ -66,13 +66,24 @@ class MarkdownFormatter:
             编译好的正则表达式模式字典
         """
         return {
-            # 基础空格处理规则（待实现）
+            # 基础空格处理规则
             "chinese_english": re.compile(r"([\u4e00-\u9fa5])([a-zA-Z])"),
             "english_chinese": re.compile(r"([a-zA-Z])([\u4e00-\u9fa5])"),
             "chinese_number": re.compile(r"([\u4e00-\u9fa5])(\d)"),
             "number_chinese": re.compile(r"(\d)([\u4e00-\u9fa5])"),
             "number_english": re.compile(r"(\d)([a-zA-Z])"),
             "english_number": re.compile(r"([a-zA-Z])(\d)"),
+            # 数学符号空格处理规则
+            "math_symbols": re.compile(
+                r"([\u4e00-\u9fa5a-zA-Z0-9])([+\-/*=<>])([\u4e00-\u9fa5a-zA-Z0-9])"
+            ),
+            # 标点符号空格处理规则
+            "punctuation_after": re.compile(r"([,\.!?;:])([A-Za-z\u4e00-\u9fa5])"),
+            "rparen_after": re.compile(r"(\))([A-Za-z\u4e00-\u9fa5])"),
+            # 中文斜杠分隔空格处理规则
+            "chinese_slash": re.compile(r"([\u4e00-\u9fa5])\s*/\s*([\u4e00-\u9fa5])"),
+            # 编号与中文空格处理规则
+            "number_chinese_priority": re.compile(r"([\u4e00-\u9fa5])(\d+)"),
         }
 
     def format_content(self, content: str) -> str:
@@ -194,13 +205,26 @@ class MarkdownFormatter:
         Returns:
             修复后的文本
         """
-        # 基础空格处理（待完善）
+        # 基础空格处理
         text = self._patterns["chinese_english"].sub(r"\1 \2", text)
         text = self._patterns["english_chinese"].sub(r"\1 \2", text)
         text = self._patterns["chinese_number"].sub(r"\1 \2", text)
         text = self._patterns["number_chinese"].sub(r"\1 \2", text)
         text = self._patterns["number_english"].sub(r"\1 \2", text)
         text = self._patterns["english_number"].sub(r"\1 \2", text)
+
+        # 数学符号空格处理
+        text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
+
+        # 标点符号空格处理
+        text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
+        text = self._patterns["rparen_after"].sub(r"\1 \2", text)
+
+        # 中文斜杠分隔空格处理
+        text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
+
+        # 编号与中文空格处理
+        text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
 
         # 合并多个连续空格
         text = re.sub(r" +", " ", text)

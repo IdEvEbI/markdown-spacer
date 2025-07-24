@@ -413,7 +413,7 @@ $$
         # 验证内容处理
         assert "中文 English" in result
         assert "中文 123" in result
-        # assert "A + B" in result  # 数学符号处理将在后续实现
+        assert "A + B" in result  # 数学符号处理已实现
 
         # 验证特殊格式处理
         assert "UTF - 8" in result  # 技术缩写应该被处理
