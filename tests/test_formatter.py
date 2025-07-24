@@ -410,24 +410,27 @@ $$
         """测试中文双引号加粗功能。"""
         fmt = MarkdownFormatter(bold_quotes=True)
 
-        # 基本加粗（中文双引号）
+        # === 应加粗：成对中文双引号，内容加粗并左右保留空格 ===
         assert fmt.content_spacing_fix("他说：“你好”") == "他说：**你好**"
         assert fmt.content_spacing_fix("世界“你好”啊") == "世界 **你好** 啊"
         assert fmt.content_spacing_fix("这是“重点”内容") == "这是 **重点** 内容"
-
-        # 并列多对全部加粗
         assert fmt.content_spacing_fix("“并列1”和“并列2”") == "**并列 1** 和 **并列 2**"
-        # 典型嵌套结构不处理
-        assert fmt.content_spacing_fix("“外层“内层”内容”") == "“外层“内层”内容”"
-
-        # 复杂情况测试（中文双引号）
         assert fmt.content_spacing_fix("他说：“你好”，然后“再见”") == "他说：**你好**，然后 **再见**"
-        # assert fmt.content_spacing_fix("“外层”内层“内容”外层") == "“外层”内层“内容”外层"
+        assert fmt.content_spacing_fix("“单独引号”") == "**单独引号**"  # 单独一对引号也应加粗
+        assert fmt.content_spacing_fix("“开头”在句首") == "**开头** 在句首"
+        assert fmt.content_spacing_fix("句尾“结尾”") == "句尾 **结尾**"
+        assert fmt.content_spacing_fix("整行“内容”") == "整行 **内容**"
 
-        # 边界情况测试（中文双引号）
-        # assert fmt.content_spacing_fix("“单独引号”") == "“单独引号”"
-        assert fmt.content_spacing_fix("开始“结束") == "开始“结束"  # 不完整的引号对
-        assert fmt.content_spacing_fix("“开始结束") == "“开始结束"  # 不完整的引号对
+        # === 应跳过：嵌套结构，整段不处理 ===
+        assert fmt.content_spacing_fix("“外层“内层”内容”") == "“外层“内层”内容”"
+        assert fmt.content_spacing_fix("“这是“重点”内容”") == "“这是“重点”内容”"
+        assert fmt.content_spacing_fix("“外层”内层“内容”外层") == "“外层”内层“内容”外层"
+
+        # === 不处理：单侧/不成对引号、边界情况 ===
+        assert fmt.content_spacing_fix("开始“结束") == "开始“结束"
+        assert fmt.content_spacing_fix("“开始结束") == "“开始结束"
+        assert fmt.content_spacing_fix("只有左引号“内容") == "只有左引号“内容"
+        assert fmt.content_spacing_fix("内容”只有右引号") == "内容”只有右引号"
 
     # ==================== 边界情况测试 ====================
 
