@@ -122,7 +122,13 @@ class MarkdownFormatter:
         return "\n".join(formatted_lines)
 
     def _format_line(self, line: str) -> str:
-        """格式化单行内容。
+        """格式化单行内容（重构版本）。
+
+        使用分层处理架构：
+        1. 识别行类型
+        2. 提取结构标记和内容块
+        3. 对内容块进行空格处理
+        4. 重新组装行
 
         Args:
             line: 要格式化的行
@@ -130,59 +136,53 @@ class MarkdownFormatter:
         Returns:
             格式化后的行
         """
-        # 跳过块级代码和行内代码
-        if line.strip().startswith("```") or line.strip().startswith("`"):
+        # 检查是否为受保护的内容（代码块、数学公式等）
+        if self._is_protected_content(line):
             return line
 
-        # 结构类型检测
-        is_table = bool(re.match(r"^\|.*\|$", line.strip()))
-        is_list = bool(re.match(r"^\s*([-*+]|\d+\.)\s*", line))
-        is_title = bool(re.match(r"^#+\s*", line))
-        is_quote = bool(re.match(r"^>\s*", line))
+        # 检查是否为水平分割线
+        if self._is_horizontal_rule_line(line):
+            return line
 
-        # 表格分隔线严格输出 | ---- | ---- |
-        if is_table and re.match(r"^\|[\s\-\|]+\|$", line.strip()):
-            parts = [p for p in line.strip().split("|")[1:-1]]
-            new_parts = ["----" for _ in parts]
-            return "| " + " | ".join(new_parts) + " |"
+        # 标题行处理
+        if self._is_title_line(line):
+            prefix, content = self._extract_title_content(line)
+            processed_content = self.content_spacing_fix(content)
+            return prefix + processed_content
 
-        # 表格内容行，按 | 分割，内容块修复
-        if is_table:
-            cells = line.strip().split("|")
-            new_cells = []
+        # 列表行处理
+        if self._is_list_line(line):
+            prefix, content = self._extract_list_content(line)
+            processed_content = self.content_spacing_fix(content)
+            return prefix + processed_content
+
+        # 引用行处理
+        if self._is_quote_line(line):
+            prefix, content = self._extract_quote_content(line)
+            processed_content = self.content_spacing_fix(content)
+            return prefix + processed_content
+
+        # 表格行处理
+        if self._is_table_line(line):
+            # 检查是否为表格分隔行
+            if re.search(r"\|[\s]*[-:]+\s*\|", line.strip()):
+                # 表格分隔行，保持原样
+                return line
+
+            # 普通表格行，处理单元格内容
+            cells = self._extract_table_cells(line)
+            processed_cells = []
             for cell in cells:
-                cell_strip = cell.strip()
-                if cell_strip:
-                    cell_strip = self.content_spacing_fix(cell_strip)
-                new_cells.append(" " + cell_strip + " " if cell_strip else "")
-            return "|".join(new_cells)
+                cell_content = cell.strip()
+                if cell_content:
+                    processed_content = self.content_spacing_fix(cell_content)
+                    processed_cells.append(" " + processed_content + " ")
+                else:
+                    processed_cells.append(" ")
 
-        # 标题、列表、引用，分离前缀和正文，正文修复
-        if is_title:
-            m = re.match(r"^(#+\s*)(.*)$", line)
-            if m:
-                prefix, content = m.group(1), m.group(2)
-                return (
-                    prefix.rstrip() + " " + self.content_spacing_fix(content.lstrip())
-                )
+            return "|" + "|".join(processed_cells) + "|"
 
-        if is_list:
-            m = re.match(r"^(\s*([-*+]|\d+\.)\s*)(.*)$", line)
-            if m:
-                prefix, content = m.group(1), m.group(3)
-                return (
-                    prefix.rstrip() + " " + self.content_spacing_fix(content.lstrip())
-                )
-
-        if is_quote:
-            m = re.match(r"^(>\s*)(.*)$", line)
-            if m:
-                prefix, content = m.group(1), m.group(2)
-                return (
-                    prefix.rstrip() + " " + self.content_spacing_fix(content.lstrip())
-                )
-
-        # 普通正文行
+        # 普通文本行处理
         return self.content_spacing_fix(line)
 
     def content_spacing_fix(self, text: str) -> str:
