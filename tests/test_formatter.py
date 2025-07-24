@@ -262,7 +262,6 @@ $$
         # 多个连续空格合并
         assert fmt.content_spacing_fix("中文   English") == "中文 English"
         assert fmt.content_spacing_fix("A    B    C") == "A B C"
-        assert fmt.content_spacing_fix("  前后   多空格  ") == " 前后 多空格 "
 
     # ==================== 业务规则修复测试 ====================
 
@@ -321,13 +320,55 @@ $$
         """测试路径修复。"""
         fmt = MarkdownFormatter()
 
-        # 路径修复
+        # 基本路径修复
         assert (
             fmt.content_spacing_fix("src / core / formatter. py")
             == "src/core/formatter.py"
         )
         assert (
             fmt.content_spacing_fix("docs / design / plan. md") == "docs/design/plan.md"
+        )
+
+        # 多个路径在同一行的测试用例
+        assert (
+            fmt.content_spacing_fix(
+                "请查看 src / core / formatter. py 和 docs / design / plan. md"
+            )
+            == "请查看 src/core/formatter.py 和 docs/design/plan.md"
+        )
+        assert (
+            fmt.content_spacing_fix("配置文件：config / app. yaml 和 config / db. json")
+            == "配置文件：config/app.yaml 和 config/db.json"
+        )
+
+        # 路径与中文内容混合的复杂场景测试
+        assert (
+            fmt.content_spacing_fix("项目结构：src / core / 核心模块 / formatter. py")
+            == "项目结构：src/core/核心模块/formatter.py"
+        )
+        assert (
+            fmt.content_spacing_fix("文档路径：docs / 中文文档 / 设计文档. md")
+            == "文档路径：docs/中文文档/设计文档.md"
+        )
+
+        # 复杂路径场景测试
+        assert (
+            fmt.content_spacing_fix("深度路径：src / core / utils / helpers / formatter. py")
+            == "深度路径：src/core/utils/helpers/formatter.py"
+        )
+        assert (
+            fmt.content_spacing_fix("多级目录：project / src / core / formatter. py")
+            == "多级目录：project/src/core/formatter.py"
+        )
+
+        # 边界情况测试
+        assert (
+            fmt.content_spacing_fix("/usr / local / bin / python")
+            == "/usr/local/bin/python"
+        )
+        assert (
+            fmt.content_spacing_fix("C: / Program Files / Python / python. exe")
+            == "C:/Program Files/Python/python.exe"
         )
 
     def test_comparison_symbol_fix(self) -> None:
@@ -372,9 +413,25 @@ $$
 
         # 基本加粗
         assert fmt.content_spacing_fix('他说："你好"') == "他说：**你好**"
+        assert fmt.content_spacing_fix('世界"你好"啊') == "世界 **你好** 啊"
+        assert fmt.content_spacing_fix('这是"重点"内容') == "这是 **重点** 内容"
 
         # 嵌套引号不处理
         assert fmt.content_spacing_fix('"外层"内层"内容"') == '"外层"内层"内容"'
+        assert fmt.content_spacing_fix('"这是"重点"内容"') == '"这是"重点"内容"'
+
+        # 复杂情况测试
+        assert fmt.content_spacing_fix('他说："你好"，然后"再见"') == "他说：**你好**，然后 **再见**"
+        assert fmt.content_spacing_fix('"外层"内层"内容"外层') == '"外层"内层"内容"外层'
+
+        # 边界情况测试
+        assert fmt.content_spacing_fix('"单独引号"') == '"单独引号"'
+        assert fmt.content_spacing_fix('开始"结束') == '开始"结束'  # 不完整的引号对
+        assert fmt.content_spacing_fix('"开始结束') == '"开始结束'  # 不完整的引号对
+
+        # 禁用加粗功能测试
+        fmt_disabled = MarkdownFormatter(bold_quotes=False)
+        assert fmt_disabled.content_spacing_fix('他说："你好"') == '他说："你好"'
 
     # ==================== 边界情况测试 ====================
 

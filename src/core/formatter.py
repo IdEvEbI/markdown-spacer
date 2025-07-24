@@ -386,20 +386,45 @@ class MarkdownFormatter:
         # 文件扩展名修复：requirements . txt -> requirements.txt
         text = self._patterns["file_extension"].sub(r"\1.\2", text)
 
-        # 路径分隔符修复：src / core / formatter. py -> src/core/formatter. py
-        # 只处理包含文件扩展名的路径，避免影响中文斜杠分隔
-        if re.search(r"\.\s*\w+", text) and not re.search(
-            r"[\u4e00-\u9fa5]", text
-        ):  # 如果包含文件扩展名且不包含中文
-            text = re.sub(r"(?<=\w)\s*/\s*(?=\w)", "/", text)
+        # 路径关键词列表（用于识别路径）
+        path_keywords = [
+            "src",
+            "docs",
+            "config",
+            "bin",
+            "usr",
+            "local",
+            "home",
+            "etc",
+            "var",
+            "tmp",
+            "core",
+            "utils",
+            "helpers",
+        ]
+
+        # 检查是否包含路径特征
+        has_path_features = (
+            re.search(r"\.\s*\w+", text)  # 包含文件扩展名
+            or any(keyword in text for keyword in path_keywords)  # 包含路径关键词
+            or re.search(r"[A-Z]:\s*\\", text)  # Windows路径
+        )
+
+        if has_path_features:
+            # Unix/Linux路径修复：处理斜杠分隔符
+            # 匹配：任意字符 + 空格 + / + 空格 + 任意字符
+            text = re.sub(r"([^\s])\s*/\s*([^\s])", r"\1/\2", text)
+
+            # Windows路径修复：处理反斜杠分隔符
+            # 匹配：盘符 + 空格 + \ + 空格 + 任意字符
+            text = re.sub(r"([A-Z]:)\s*\\\s*([^\s])", r"\1\\\2", text)
+            text = re.sub(r"([^\s])\s*\\\s*([^\s])", r"\1\\\2", text)
 
         # 路径中的文件扩展名修复：src/core/formatter. py -> src/core/formatter.py
-        # 匹配路径中最后一个文件名前的空格
         text = self._patterns["path_file_extension"].sub(r"\1.\2", text)
 
         # 兜底处理：修复文件路径中点号后的空格 . py -> .py
-        # 只处理包含斜杠的路径，避免影响普通文本
-        if "/" in text:
+        if "/" in text or "\\" in text:
             text = re.sub(r"\.\s+([a-zA-Z0-9]+)", r".\1", text)
 
         return text
