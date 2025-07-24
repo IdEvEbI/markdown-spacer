@@ -208,24 +208,228 @@ class MarkdownFormatter:
         return text
 
     def _is_protected_content(self, line: str) -> bool:
-        """检查行是否包含不应格式化的保护内容。
+        """检查是否为受保护的内容。
 
         Args:
             line: 要检查的行
 
         Returns:
-            如果行包含保护内容则返回 True
+            如果是受保护的内容返回True，否则返回False
         """
-        # 行内代码
-        if line.strip().startswith("`"):
+        # 检查是否为代码块标记
+        if line.strip().startswith("```"):
             return True
-        # HTML tags
-        if re.search(r"<[^>]+>", line):
-            return True
-        # 链接和图片
-        if re.search(r"\[.*\]\(.*\)", line) or re.search(r"!\[.*\]\(.*\)", line):
-            return True
-        # 数学公式
-        if re.search(r"\$\$.*\$\$", line) or re.search(r"\$.*\$", line):
+        # 检查是否为数学公式块
+        if line.strip().startswith("$$"):
             return True
         return False
+
+    # ==================== 行类型识别方法 ====================
+
+    def _is_title_line(self, line: str) -> bool:
+        """检查是否为标题行。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是标题行返回True，否则返回False
+        """
+        stripped = line.strip()
+        return stripped.startswith("#") and not stripped.startswith("```")
+
+    def _is_list_line(self, line: str) -> bool:
+        """检查是否为列表行。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是列表行返回True，否则返回False
+        """
+        stripped = line.strip()
+        # 无序列表：-、*、+
+        if stripped.startswith(("-", "*", "+")):
+            return True
+        # 有序列表：数字. 格式
+        if re.match(r"^\d+\.\s", stripped):
+            return True
+        # 任务列表：[ ] 或 [x]
+        if re.match(r"^[-*+]\s*\[[ xX]\]", stripped):
+            return True
+        return False
+
+    def _is_quote_line(self, line: str) -> bool:
+        """检查是否为引用行。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是引用行返回True，否则返回False
+        """
+        stripped = line.strip()
+        return stripped.startswith(">")
+
+    def _is_table_line(self, line: str) -> bool:
+        """检查是否为表格行。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是表格行返回True，否则返回False
+        """
+        stripped = line.strip()
+        # 检查是否包含表格分隔符 |
+        if "|" not in stripped:
+            return False
+        # 检查是否为表格分隔行（包含 ---）
+        if re.search(r"\|[\s]*[-:]+\s*\|", stripped):
+            return True
+        # 检查是否为普通表格行（至少包含两个 |）
+        if stripped.count("|") >= 2:
+            return True
+        return False
+
+    def _is_code_block_line(self, line: str) -> bool:
+        """检查是否为代码块标记行。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是代码块标记行返回True，否则返回False
+        """
+        stripped = line.strip()
+        return stripped.startswith("```")
+
+    def _is_math_block_line(self, line: str) -> bool:
+        """检查是否为数学公式块标记行。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是数学公式块标记行返回True，否则返回False
+        """
+        stripped = line.strip()
+        return stripped.startswith("$$")
+
+    def _is_horizontal_rule_line(self, line: str) -> bool:
+        """检查是否为水平分割线。
+
+        Args:
+            line: 要检查的行
+
+        Returns:
+            如果是水平分割线返回True，否则返回False
+        """
+        stripped = line.strip()
+        # 检查是否为水平分割线（至少3个连续的 -、* 或 _）
+        return bool(re.match(r"^[-*_]{3,}$", stripped))
+
+    # ==================== 内容块提取方法 ====================
+
+    def _extract_title_content(self, line: str) -> tuple[str, str]:
+        """提取标题行的前缀和内容。
+
+        Args:
+            line: 标题行
+
+        Returns:
+            元组 (前缀, 内容)，前缀包含 # 符号和空格，内容为标题文本
+        """
+        stripped = line.strip()
+        # 找到第一个非 # 字符的位置
+        content_start = 0
+        for i, char in enumerate(stripped):
+            if char != "#":
+                content_start = i
+                break
+
+        # 提取前缀（包含 # 符号和后续空格）
+        prefix = stripped[:content_start] + " "
+        # 提取内容（去除前导空格）
+        content = stripped[content_start:].lstrip()
+
+        return prefix, content
+
+    def _extract_list_content(self, line: str) -> tuple[str, str]:
+        """提取列表行的前缀和内容。
+
+        Args:
+            line: 列表行
+
+        Returns:
+            元组 (前缀, 内容)，前缀包含列表标记和空格，内容为列表项文本
+        """
+        stripped = line.strip()
+
+        # 处理有序列表：数字. 格式
+        if re.match(r"^\d+\.\s", stripped):
+            match = re.match(r"^(\d+\.\s+)(.*)", stripped)
+            if match:
+                return match.group(1), match.group(2)
+
+        # 处理任务列表：[-*+] [ ] 格式
+        if re.match(r"^[-*+]\s*\[[ xX]\]", stripped):
+            match = re.match(r"^([-*+]\s*\[[ xX]\]\s+)(.*)", stripped)
+            if match:
+                return match.group(1), match.group(2)
+
+        # 处理普通无序列表：[-*+] 格式
+        if stripped.startswith(("-", "*", "+")):
+            # 找到第一个空格后的内容
+            space_pos = stripped.find(" ")
+            if space_pos != -1:
+                prefix = stripped[: space_pos + 1]
+                content = stripped[space_pos + 1 :]
+                return prefix, content
+
+        # 默认情况
+        return "", stripped
+
+    def _extract_quote_content(self, line: str) -> tuple[str, str]:
+        """提取引用行的前缀和内容。
+
+        Args:
+            line: 引用行
+
+        Returns:
+            元组 (前缀, 内容)，前缀包含 > 符号和空格，内容为引用文本
+        """
+        stripped = line.strip()
+        if stripped.startswith(">"):
+            # 找到第一个非 > 字符的位置
+            content_start = 0
+            for i, char in enumerate(stripped):
+                if char != ">":
+                    content_start = i
+                    break
+
+            # 提取前缀（包含 > 符号和后续空格）
+            prefix = stripped[:content_start] + " "
+            # 提取内容（去除前导空格）
+            content = stripped[content_start:].lstrip()
+
+            return prefix, content
+
+        return "", stripped
+
+    def _extract_table_cells(self, line: str) -> list[str]:
+        """提取表格行的单元格内容。
+
+        Args:
+            line: 表格行
+
+        Returns:
+            单元格内容列表，每个元素包含单元格的原始内容（包含前后空格）
+        """
+        stripped = line.strip()
+        if not stripped.startswith("|") or not stripped.endswith("|"):
+            return []
+
+        # 去除首尾的 |，然后按 | 分割
+        cells = stripped[1:-1].split("|")
+        return cells
