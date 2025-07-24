@@ -136,50 +136,22 @@ class MarkdownFormatter:
         }
 
     def format_content(self, content: str) -> str:
-        """格式化内容，添加适当的空格。
-
-        Args:
-            content: 要格式化的内容
-
-        Returns:
-            格式化后的内容
-        """
-        lines = content.split("\n")
-        formatted_lines = []
-        in_code_block = False
-        in_math_block = False
-
-        for idx, line in enumerate(lines):
-            # 检查多行代码块
-            if line.strip().startswith("```"):
-                in_code_block = not in_code_block
-                if self.debug:
-                    logging.debug(
-                        f"Line {idx}: {'进入' if in_code_block else '退出'}代码块 -> {line}"
-                    )
-                formatted_lines.append(line)
-                continue
-
-            # 检查多行数学公式块
-            if line.strip().startswith("$$"):
-                in_math_block = not in_math_block
-                if self.debug:
-                    logging.debug(
-                        f"Line {idx}: {'进入' if in_math_block else '退出'}数学公式块 -> {line}"
-                    )
-                formatted_lines.append(line)
-                continue
-
-            # 跳过所有多行保护块
-            if in_code_block or in_math_block or self._is_protected_content(line):
-                if self.debug:
-                    logging.debug(f"Line {idx}: 跳过特殊内容 -> {line}")
-                formatted_lines.append(line)
-                continue
-
-            formatted_lines.append(self._format_line(line))
-
-        return "\n".join(formatted_lines)
+        """格式化内容，添加适当的空格。"""
+        # 1. 保护特殊内容
+        protected_content: Dict[str, str] = {}
+        content = self._protect_special_content(content, protected_content)
+        # 2. 按行处理，收集到列表
+        lines = content.splitlines(keepends=True)
+        processed_lines = [self.content_spacing_fix(line) for line in lines]
+        content = "".join(processed_lines)
+        # 3. 业务规则修复
+        content = self._apply_business_rules(content)
+        # 4. 中文双引号加粗（可选）
+        if self.bold_quotes:
+            content = self._fix_chinese_quotes_bold(content)
+        # 5. 恢复特殊内容
+        content = self._restore_special_content(content, protected_content)
+        return content
 
     def _format_line(self, line: str) -> str:
         """格式化单行内容（重构版本）。
@@ -246,101 +218,55 @@ class MarkdownFormatter:
         return self.content_spacing_fix(line)
 
     def content_spacing_fix(self, text: str) -> str:
-        """内容块空格修复（基础实现）。
+        """内容块空格修复（基础实现）。"""
+        # 文件名格式保护（如 requirements.txt、setup.py、pyproject.toml 等）
+        # 用特殊占位符保护，处理后还原
+        protected_filenames: dict[str, str] = {}
 
-        处理流程：
-        1. 特殊内容保护
-        2. 基础空格处理
-        3. 业务规则修复
-        4. 恢复特殊内容
+        def protect_filename(m: re.Match[str]) -> str:
+            key = f"__FILENAME_{len(protected_filenames)}__"
+            protected_filenames[key] = m.group(0)
+            return key
 
-        Args:
-            text: 要处理的文本
+        # 常见文件名格式
+        text = re.sub(
+            r"\b\w+\.(txt|py|toml|yaml|yml|json|md|markdown)\b", protect_filename, text
+        )
 
-        Returns:
-            处理后的文本
-        """
-        # 调试日志 - 仅在debug模式下输出
-        if self.debug:
-            self.logger.debug(f"开始处理: '{text}'")
-
-        # 特殊内容保护：先保存特殊内容，用占位符替换
-        protected_content: Dict[str, str] = {}
-        text = self._protect_special_content(text, protected_content)
-        if self.debug:
-            self.logger.debug(f"特殊内容保护后: '{text}'")
-
-        # 基础空格处理 - 分步处理以确保正确性
-        # 中英文
+        # 基础空格处理
         text = re.sub(r"([\u4e00-\u9fa5])([a-zA-Z])", r"\1 \2", text)
-        # 英中文
         text = re.sub(r"([a-zA-Z])([\u4e00-\u9fa5])", r"\1 \2", text)
-        # 中数字
         text = re.sub(r"([\u4e00-\u9fa5])(\d)", r"\1 \2", text)
-        # 数字中
         text = re.sub(r"(\d)([\u4e00-\u9fa5])", r"\1 \2", text)
-        # 数字英（排除比较符号）
         text = re.sub(r"(\d)([a-zA-Z])(?!\s*[>=<≤≥＝≠])", r"\1 \2", text)
-        # 英数字
         text = re.sub(r"([a-zA-Z])(\d)", r"\1 \2", text)
-        if self.debug:
-            self.logger.debug(f"基础空格处理后: '{text}'")
-
-        # 数学符号空格处理 - 条件执行优化
+        # 数学符号空格处理
         if any(char in text for char in "+/*=<>"):
             text = self._patterns["math_symbols"].sub(r"\1 \2 \3", text)
-            if self.debug:
-                self.logger.debug(f"数学符号处理后: '{text}'")
-
-        # 减号符号空格处理（排除版本号中的连字符）- 条件执行优化
+        # 减号符号空格处理
         if "-" in text:
             text = self._patterns["minus_symbol"].sub(r"\1 \2 \3", text)
-            if self.debug:
-                self.logger.debug(f"减号符号处理后: '{text}'")
-
-        # 标点符号空格处理 - 条件执行优化
+        # 标点符号空格处理
         if any(char in text for char in ",.!?;:"):
             text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
         if ")" in text:
             text = self._patterns["rparen_after"].sub(r"\1 \2", text)
-        if self.debug:
-            self.logger.debug(f"标点符号处理后: '{text}'")
-
-        # 中文斜杠分隔空格处理 - 条件执行优化
+        # 中文斜杠分隔空格处理
         if "/" in text:
             text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
-            if self.debug:
-                self.logger.debug(f"斜杠分隔处理后: '{text}'")
-
-        # 编号与中文空格处理 - 条件执行优化
+        # 编号与中文空格处理
         if any(char.isdigit() for char in text):
             text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
-            if self.debug:
-                self.logger.debug(f"编号中文处理后: '{text}'")
-
-        # 合并多个连续空格 - 使用预编译的正则表达式
+        # 合并多个连续空格
         text = self._patterns["multiple_spaces"].sub(" ", text)
-        if self.debug:
-            self.logger.debug(f"多空格合并后: '{text}'")
-
-        # 业务规则修复（删除不应该存在的空格）- 最后进行
+        # 业务规则修复
         text = self._apply_business_rules(text)
-        if self.debug:
-            self.logger.debug(f"业务规则修复后: '{text}'")
-
-        # 中文双引号加粗（可选功能）
-        if self.bold_quotes:
+        # 恢复文件名格式
+        for key, val in protected_filenames.items():
+            text = text.replace(key, val)
+        # 中文双引号加粗（可选）
+        if getattr(self, "bold_quotes", False):
             text = self._fix_chinese_quotes_bold(text)
-            if self.debug:
-                self.logger.debug(f"中文双引号加粗后: '{text}'")
-
-        # 恢复特殊内容
-        text = self._restore_special_content(text, protected_content)
-        if self.debug:
-            self.logger.debug(f"恢复特殊内容后: '{text}'")
-            self.logger.debug(f"最终结果: '{text}'")
-            self.logger.debug("-" * 50)
-
         return text
 
     def _apply_business_rules(self, text: str) -> str:
