@@ -489,6 +489,113 @@ $$
         # 验证边界情况
         assert "这里 有 多个 空格 需要 合并" in result  # 连续空格应该被合并
 
+    def test_list_format_preservation(self) -> None:
+        """测试列表格式保护，确保列表结构不被破坏。"""
+        fmt = MarkdownFormatter()
+
+        # 测试有序列表
+        test_cases = [
+            # 有序列表
+            (
+                (
+                    "1. 规则梳理与正则表达式设计\n"
+                    "   - 明确所有需要处理的中英文、数字、符号间空格规则\n"
+                    "   - 设计正则表达式，区分添加/删除空格、特殊内容保护"
+                ),
+                (
+                    "1. 规则梳理与正则表达式设计\n"
+                    "   - 明确所有需要处理的中英文、数字、符号间空格规则\n"
+                    "   - 设计正则表达式，区分添加/删除空格、特殊内容保护"
+                ),
+            ),
+            # 无序列表
+            (
+                "- 第一阶段：实现基础规则和主处理流程，能正确处理常见中英文空格问题\n- 第二阶段：完善特殊内容保护和边界处理，提升健壮性",
+                "- 第一阶段：实现基础规则和主处理流程，能正确处理常见中英文空格问题\n- 第二阶段：完善特殊内容保护和边界处理，提升健壮性",
+            ),
+            # 任务列表
+            (
+                "- [ ] 规则梳理与正则表达式设计\n- [x] 特殊内容保护机制实现",
+                "- [ ] 规则梳理与正则表达式设计\n- [x] 特殊内容保护机制实现",
+            ),
+            # 嵌套列表
+            (
+                "1. 核心功能\n   - 中英文空格处理\n   - 数字单位修复\n2. 扩展功能\n   - 中文双引号加粗\n   - 路径修复",
+                "1. 核心功能\n   - 中英文空格处理\n   - 数字单位修复\n2. 扩展功能\n   - 中文双引号加粗\n   - 路径修复",
+            ),
+        ]
+
+        for input_text, expected in test_cases:
+            result = fmt.format_content(input_text)
+            assert (
+                result == expected
+            ), f"列表格式被破坏:\n输入: {input_text}\n期望: {expected}\n实际: {result}"
+
+    def test_list_content_spacing(self) -> None:
+        """测试列表内容中的空格处理，确保内容正确处理但格式不破坏。"""
+        fmt = MarkdownFormatter(bold_quotes=True)
+
+        # 测试列表内容中的中英文空格处理
+        test_cases = [
+            # 有序列表内容
+            (
+                "1. 中英文空格处理English中文\n" "2. 数字单位修复10MB文件",
+                "1. 中英文空格处理 English 中文\n" "2. 数字单位修复 10MB 文件",
+            ),
+            # 无序列表内容
+            (
+                "- 技术术语UTF-8编码\n" "- 文件路径src/core/formatter.py",
+                "- 技术术语 UTF-8 编码\n" "- 文件路径 src/core/formatter.py",
+            ),
+            # 嵌套列表内容
+            (
+                (
+                    "1. 核心功能\n"
+                    "   - 中英文English处理\n"
+                    "   - 数字123单位修复\n"
+                    "2. 扩展功能\n"
+                    "   - 中文双引号“加粗”功能"
+                ),
+                (
+                    "1. 核心功能\n"
+                    "   - 中英文 English 处理\n"
+                    "   - 数字 123 单位修复\n"
+                    "2. 扩展功能\n"
+                    "   - 中文双引号 **加粗** 功能"
+                ),
+            ),
+        ]
+
+        for input_text, expected in test_cases:
+            result = fmt.format_content(input_text)
+            assert (
+                result == expected
+            ), f"列表内容处理错误:\n输入: {input_text}\n期望: {expected}\n实际: {result}"
+
+    def test_list_indentation_preservation(self) -> None:
+        """测试列表缩进保护，确保缩进结构不被破坏。"""
+        fmt = MarkdownFormatter()
+
+        # 测试不同缩进级别的列表
+        test_cases = [
+            # 多级缩进
+            (
+                "1. 一级列表\n   1. 二级列表\n      1. 三级列表\n         - 四级列表",
+                "1. 一级列表\n   1. 二级列表\n      1. 三级列表\n         - 四级列表",
+            ),
+            # 混合缩进
+            (
+                "- 无序列表\n  - 嵌套无序\n    1. 嵌套有序\n       - 更深嵌套",
+                "- 无序列表\n  - 嵌套无序\n    1. 嵌套有序\n       - 更深嵌套",
+            ),
+        ]
+
+        for input_text, expected in test_cases:
+            result = fmt.format_content(input_text)
+            assert (
+                result == expected
+            ), f"列表缩进被破坏:\n输入: {input_text}\n期望: {expected}\n实际: {result}"
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
