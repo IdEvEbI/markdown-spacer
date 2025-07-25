@@ -596,6 +596,217 @@ $$
                 result == expected
             ), f"列表缩进被破坏:\n输入: {input_text}\n期望: {expected}\n实际: {result}"
 
+    def test_markdown_structure_integrity(self) -> None:
+        """测试 Markdown 结构完整性，确保复杂文档处理后结构不被破坏。"""
+        fmt = MarkdownFormatter(bold_quotes=True)
+
+        # 复杂的 Markdown 文档测试用例
+        complex_markdown = """# 项目标题
+
+## 功能列表
+
+### 核心功能
+
+1. **中英文空格处理**
+   - 自动在中英文之间添加空格
+   - 支持数字与中英文的空格处理
+   - 处理数学符号和标点符号
+
+2. **特殊内容保护**
+   - 保护代码块：```python
+     print("Hello World")
+     ```
+   - 保护行内代码：`中文English`
+   - 保护链接：[中文English](http://example.com)
+   - 保护图片：![中文English](image.png)
+
+### 扩展功能
+
+- [x] 中文双引号“加粗”功能
+- [ ] 路径修复功能
+- [ ] 技术术语修复
+
+## 技术规格
+
+| 功能 | 状态 | 优先级 |
+|------|------|--------|
+| 基础空格处理 | ✅ 完成 | 高 |
+| 特殊内容保护 | ✅ 完成 | 高 |
+| 中文双引号加粗 | ✅ 完成 | 中 |
+
+## 代码示例
+
+```python
+def format_content(text: str) -> str:
+    \"\"\"格式化 Markdown 内容。\"\"\"
+    # 处理中英文空格
+    text = process_spacing(text)
+    # 保护特殊内容
+    text = protect_special_content(text)
+    return text
+```
+
+## 引用示例
+
+> 这是一个引用块，包含中英文混排内容 English。
+>
+> 第二行引用内容，测试换行处理。
+
+## 嵌套结构测试
+
+1. 一级列表
+   - 二级无序列表
+     - 三级列表项
+   - 另一个二级项
+     1. 嵌套的有序列表
+     2. 包含中英文English内容
+
+## 混合内容测试
+
+- 列表项包含 `行内代码`
+- 列表项包含 [链接文本](http://example.com)
+- 列表项包含 **加粗文本** 和 *斜体文本*
+- 列表项包含数学公式：$E = mc^2$
+
+## 边界情况
+
+- 空行处理
+- 只有结构标记的行
+- 极端嵌套情况
+"""
+
+        # 处理后的期望结果（结构保持不变，内容正确应用空格规则）
+        expected_result = """# 项目标题
+
+## 功能列表
+
+### 核心功能
+
+1. **中英文空格处理**
+   - 自动在中英文之间添加空格
+   - 支持数字与中英文的空格处理
+   - 处理数学符号和标点符号
+
+2. **特殊内容保护**
+   - 保护代码块：```python
+     print("Hello World")
+     ```
+   - 保护行内代码：`中文English`
+   - 保护链接：[中文English](http://example.com)
+   - 保护图片：![中文English](image.png)
+
+### 扩展功能
+
+- [x] 中文双引号 **加粗** 功能
+- [ ] 路径修复功能
+- [ ] 技术术语修复
+
+## 技术规格
+
+| 功能 | 状态 | 优先级 |
+|------|------|--------|
+| 基础空格处理 | ✅ 完成 | 高 |
+| 特殊内容保护 | ✅ 完成 | 高 |
+| 中文双引号加粗 | ✅ 完成 | 中 |
+
+## 代码示例
+
+```python
+def format_content(text: str) -> str:
+    \"\"\"格式化 Markdown 内容。\"\"\"
+    # 处理中英文空格
+    text = process_spacing(text)
+    # 保护特殊内容
+    text = protect_special_content(text)
+    return text
+```
+
+## 引用示例
+
+> 这是一个引用块，包含中英文混排内容 English。
+>
+> 第二行引用内容，测试换行处理。
+
+## 嵌套结构测试
+
+1. 一级列表
+   - 二级无序列表
+     - 三级列表项
+   - 另一个二级项
+     1. 嵌套的有序列表
+     2. 包含中英文 English 内容
+
+## 混合内容测试
+
+- 列表项包含 `行内代码`
+- 列表项包含 [链接文本](http://example.com)
+- 列表项包含 **加粗文本** 和 *斜体文本*
+- 列表项包含数学公式：$E = mc^2$
+
+## 边界情况
+
+- 空行处理
+- 只有结构标记的行
+- 极端嵌套情况
+"""
+
+        # 执行格式化
+        result = fmt.format_content(complex_markdown)
+
+        # 验证结构完整性
+        self._verify_structure_integrity(complex_markdown, result)
+
+        # 验证内容处理正确性
+        self._verify_content_processing(result, expected_result)
+
+    def _verify_structure_integrity(self, original: str, processed: str) -> None:
+        """验证 Markdown 结构完整性。"""
+        # 验证标题结构
+        assert "# 项目标题" in processed, "一级标题结构被破坏"
+        assert "## 功能列表" in processed, "二级标题结构被破坏"
+        assert "### 核心功能" in processed, "三级标题结构被破坏"
+
+        # 验证列表结构
+        assert "1. **中英文空格处理**" in processed, "有序列表结构被破坏"
+        assert "- [x] 中文双引号" in processed, "任务列表结构被破坏"
+        assert "- 二级无序列表" in processed, "无序列表结构被破坏"
+
+        # 验证表格结构
+        assert "| 功能 | 状态 | 优先级 |" in processed, "表格结构被破坏"
+        assert "|------|------|--------|" in processed, "表格分隔符被破坏"
+
+        # 验证代码块结构
+        assert "```python" in processed, "代码块开始标记被破坏"
+        assert "```" in processed, "代码块结束标记被破坏"
+
+        # 验证引用结构
+        assert "> 这是一个引用块" in processed, "引用结构被破坏"
+
+        # 验证行内格式
+        assert "`行内代码`" in processed, "行内代码结构被破坏"
+        assert "[链接文本](http://example.com)" in processed, "链接结构被破坏"
+        assert "**加粗文本**" in processed, "加粗结构被破坏"
+        assert "$E = mc^2$" in processed, "数学公式结构被破坏"
+
+        # 验证空行和换行
+        lines_original = original.splitlines()
+        lines_processed = processed.splitlines()
+        assert len(lines_original) == len(lines_processed), "行数发生变化"
+
+    def _verify_content_processing(self, result: str, expected: str) -> None:
+        """验证内容处理正确性。"""
+        # 验证中英文空格处理
+        assert "中英文 English 内容" in result, "中英文空格处理失败"
+
+        # 验证中文双引号加粗
+        assert "中文双引号 **加粗** 功能" in result, "中文双引号加粗失败"
+
+        # 验证特殊内容保护
+        assert "`中文English`" in result, "行内代码保护失败"
+        assert "[中文English](http://example.com)" in result, "链接保护失败"
+        assert "```python" in result, "代码块保护失败"
+        assert "$E = mc^2$" in result, "数学公式保护失败"
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
