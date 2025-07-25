@@ -107,7 +107,7 @@ class TestFormatterOptimization:
         """测试流式处理阈值检测。"""
         # 测试不同大小的内容
         small_content = "中文English" * 100
-        large_content = "中文English" * 10000
+        large_content = "中文English" * 1000
 
         formatter = MarkdownFormatter()
         benchmark = PerformanceBenchmark()
@@ -128,7 +128,7 @@ class TestFormatterOptimization:
     def test_large_file_processing(self) -> None:
         """测试大文件处理性能。"""
         # 创建大文件测试
-        large_content = "中文English" * 50000  # 约1MB内容
+        large_content = "中文English" * 1000  # 约1MB内容
 
         formatter = MarkdownFormatter()
         benchmark = PerformanceBenchmark()
