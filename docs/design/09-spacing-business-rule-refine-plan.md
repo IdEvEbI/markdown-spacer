@@ -683,3 +683,56 @@ def content_spacing_fix(self, text: str) -> str:
 | 版本 | 日期 | 变更内容 | 负责人 |
 | ---- | ---- | -------- | ------ |
 | v1.1 | 2025-07-24 | 添加开发约定章节，明确开发流程和调试策略 | 刘凡 & 小克 |
+
+## Phase 5: 实战验证（真实场景测试）
+
+### 目标
+
+- 用 markdown-spacer 工具批量处理 docs/design 目录下 01~08 号设计文档，验证所有业务规则在真实文档中的覆盖和效果。
+- 发现遗漏或新业务规则，及时记录并反馈。
+
+### 执行计划
+
+1. 按如下顺序依次处理文件：
+   1. 04-spacing-algorithm-plan.md
+   2. 05-file-handler-plan.md
+   3. 06-cli-interface-plan.md
+   4. 02-environment-setup.md
+   5. 03-architecture-overview.md
+   6. 07-performance-optimization-plan.md
+   7. 01-technical-design.md
+   8. 08-large-file-processing-design.md
+2. 每处理一个文件：
+   - 运行 markdown-spacer 工具，建议加 -b（备份）、-q（中文双引号加粗）、-s（静默）参数
+   - 处理后人工对比原文件与格式化结果，逐条确认所有业务规则是否被正确覆盖
+   - 如有遗漏或新业务规则，立即记录
+   - 每步需人工确认后再继续下一个文件
+3. 新发现的业务规则或特殊场景，统一记录到 docs/design/10-real-world-validation-results.md
+
+### 验证方法
+
+- 重点关注：中英文空格、数字单位、路径修复、特殊内容保护、中文双引号加粗等
+- 对比处理前后差异，确保所有规则生效且无误伤
+- 发现问题及时反馈并修复
+
+### 新规则记录机制
+
+- 新建 docs/design/10-real-world-validation-results.md 文档，结构建议：
+  - 验证概述
+  - 文件处理结果（逐个文件）
+  - 新发现的业务规则
+  - 需要优化的规则
+  - 总结和建议
+
+### TODO-LIST
+
+- [ ] 依次处理 docs/design/04-spacing-algorithm-plan.md
+- [ ] 依次处理 docs/design/05-file-handler-plan.md
+- [ ] 依次处理 docs/design/06-cli-interface-plan.md
+- [ ] 依次处理 docs/design/02-environment-setup.md
+- [ ] 依次处理 docs/design/03-architecture-overview.md
+- [ ] 依次处理 docs/design/07-performance-optimization-plan.md
+- [ ] 依次处理 docs/design/01-technical-design.md
+- [ ] 依次处理 docs/design/08-large-file-processing-design.md
+- [ ] 每步人工确认后推进下一步
+- [ ] 新规则/遗漏统一记录到 docs/design/10-real-world-validation-results.md
