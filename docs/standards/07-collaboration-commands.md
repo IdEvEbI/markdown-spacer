@@ -120,6 +120,8 @@ git push origin 分支名
 8. 阅读架构概览：`docs/design/03-architecture-overview.md`
 9. （可选）阅读协作指令集本身：`docs/standards/07-collaboration-commands.md`
 10. 阅读代码与提交规范：`docs/standards/05-code-style-guide.md`
+11. 切换到 Python 高级开发工程师角色
+12. 使用 `source venv/bin/activate` 激活虚拟环境
 
 **推荐用法**：
 
