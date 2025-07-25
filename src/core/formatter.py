@@ -140,12 +140,26 @@ class MarkdownFormatter:
         # 1. 批量保护特殊内容
         protected_content: Dict[str, str] = {}
         content = self._protect_special_content(content, protected_content)
-        # 2. 按行处理，收集到列表
+        # 2. 按行处理，收集到列表，保留换行符
         lines = content.splitlines(keepends=True)
-        processed_lines = [self._format_line(line) for line in lines]
+        processed_lines = [
+            self._format_line(line.rstrip("\r\n"))
+            + ("\n" if line.endswith("\n") else "")
+            for line in lines
+        ]
         content = "".join(processed_lines)
-        # 3. 业务规则修复
-        content = self._apply_business_rules(content)
+        # 3. 业务规则修复（按行处理，保护换行符）
+        lines = content.splitlines(keepends=True)
+        processed_lines = []
+        for line in lines:
+            if line.strip():  # 非空行才应用业务规则
+                processed_line = self._apply_business_rules(line.rstrip("\r\n")) + (
+                    "\n" if line.endswith("\n") else ""
+                )
+                processed_lines.append(processed_line)
+            else:
+                processed_lines.append(line)  # 空行保持原样
+        content = "".join(processed_lines)
         # 4. 中文双引号加粗（可选）
         if self.bold_quotes:
             content = self._fix_chinese_quotes_bold(content)
@@ -233,15 +247,27 @@ class MarkdownFormatter:
             text = self._patterns["punctuation_after"].sub(r"\1 \2", text)
         if ")" in text:
             text = self._patterns["rparen_after"].sub(r"\1 \2", text)
-        # 中文斜杠分隔空格处理
+        # 中文斜杠分隔空格处理（仅限两侧均为中文字符时加空格）
         if "/" in text:
-            text = self._patterns["chinese_slash"].sub(r"\1 / \2", text)
+            # 只处理"中文/中文"场景，其他情况不加空格
+            # 但需要排除一些常见的业务术语，如"添加/删除"、"增加/减少"等
+            # 这些术语通常表示"或"的关系，不应该加空格
+            text = re.sub(
+                r"([\u4e00-\u9fa5])\s*/\s*([\u4e00-\u9fa5])", r"\1 / \2", text
+            )
         # 编号与中文空格处理
         if any(char.isdigit() for char in text):
             text = self._patterns["number_chinese_priority"].sub(r"\1 \2", text)
-        # 合并多个连续空格
+        # 合并多个连续空格（但保护换行符）
         if " " in text:
-            text = self._patterns["multiple_spaces"].sub(" ", text)
+            # 先按行分割，处理每行内的多个空格，然后重新组合
+            lines = text.split("\n")
+            processed_lines = []
+            for line in lines:
+                # 只处理行内的多个连续空格，不处理换行符
+                processed_line = self._patterns["multiple_spaces"].sub(" ", line)
+                processed_lines.append(processed_line)
+            text = "\n".join(processed_lines)
         # 业务规则修复
         text = self._apply_business_rules(text)
         # 恢复文件名格式
@@ -310,6 +336,15 @@ class MarkdownFormatter:
         # 但不影响其他情况下的末尾空格
         # 使用更精确的匹配，只匹配单词后跟空格结尾的情况
         text = re.sub(r"([a-zA-Z0-9]+) $", r"\1", text)
+
+        # 修复中文斜杠分隔的误处理
+        # 一些业务术语如"添加/删除"、"增加/减少"等不应该被加空格
+        text = re.sub(r"添加 / 删除", r"添加/删除", text)
+        text = re.sub(r"增加 / 减少", r"增加/减少", text)
+        text = re.sub(r"创建 / 删除", r"创建/删除", text)
+        text = re.sub(r"启用 / 禁用", r"启用/禁用", text)
+        text = re.sub(r"开启 / 关闭", r"开启/关闭", text)
+        text = re.sub(r"开始 / 结束", r"开始/结束", text)
 
         return text
 
@@ -677,15 +712,19 @@ class MarkdownFormatter:
 
     def _extract_list_content(self, line: str) -> tuple[str, str]:
         """提取所有缩进层级的列表行结构标记和内容。"""
-        # 任务列表
-        m = re.match(r"^(\s*[-*+]|\d+\.)\s*(\[[ xX]\])?\s+(.*)$", line)
+        # 支持缩进+有序/无序/任务列表
+        m = re.match(r"^(\s*)([-*+]|\d+\.)\s*(\[[ xX]\])?\s+(.*)$", line)
         if m:
-            prefix = m.group(1)
-            if m.group(2):
-                prefix += m.group(2) + " "
+            indent = m.group(1) or ""
+            marker = m.group(2)
+            task = m.group(3) or ""
+            content = m.group(4)
+            prefix = indent + marker
+            if task:
+                prefix += " " + task + " "  # 任务列表需要保留空格
             else:
-                prefix += " "
-            return prefix, m.group(3)
+                prefix += " "  # 普通列表
+            return prefix, content.strip()
         return "", line
 
     def _is_quote_line(self, line: str) -> bool:
